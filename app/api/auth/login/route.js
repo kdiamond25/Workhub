@@ -13,9 +13,14 @@ export async function GET(request) {
     'openid','email','profile'
   ].join(' ')
 
-  const url = `https://accounts.google.com/o/oauth2/v2/auth?` +
-    `client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}` +
-    `&response_type=code&scope=${encodeURIComponent(scope)}&access_type=offline&prompt=consent`
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    scope: scope,
+    access_type: 'offline',
+    prompt: 'consent'
+  })
 
-  return NextResponse.redirect(url)
+  return NextResponse.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`)
 }
