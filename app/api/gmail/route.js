@@ -3,7 +3,7 @@ import { cookies } from 'next/headers'
 
 async function getAccessToken() {
   const cookieStore = cookies()
-  let token = cookieStore.get('access_token')?.value
+  const token = cookieStore.get('access_token')?.value
   if (token) return token
 
   const refresh = cookieStore.get('refresh_token')?.value
@@ -33,6 +33,11 @@ export async function GET(request) {
       { headers: { Authorization: `Bearer ${token}` } }
     )
     const listData = await listRes.json()
+
+    if (listData.error) {
+      return NextResponse.json({ error: listData.error.message }, { status: 401 })
+    }
+
     const messages = listData.messages || []
 
     const emails = await Promise.all(
@@ -44,7 +49,6 @@ export async function GET(request) {
         const msgData = await msgRes.json()
         const headers = msgData.payload?.headers || []
         const get = (name) => headers.find(h => h.name.toLowerCase() === name.toLowerCase())?.value || ''
-        const body = msgData.snippet || ''
         const isUnread = msgData.labelIds?.includes('UNREAD')
         const files = (msgData.payload?.parts || [])
           .filter(p => p.filename)
@@ -55,8 +59,8 @@ export async function GET(request) {
           id: msg.id,
           from: get('From'),
           subject: get('Subject') || '(no subject)',
-          preview: body,
-          body: body,
+          preview: msgData.snippet || '',
+          body: msgData.snippet || '',
           date: new Date(parseInt(msgData.internalDate)).toISOString().slice(0, 10),
           read: !isUnread,
           needsReply: false,
@@ -89,7 +93,8 @@ export async function POST(request) {
     body,
   ].join('\n')
 
-  const encoded = Buffer.from(email).toString('base64').replace(/\+/g, '-').replace(/\//g, '_')
+  const encoded = Buffer.from(email).toString('base64')
+    .replace(/\+/g, '-').replace(/\//g, '_')
 
   try {
     const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {

@@ -27,34 +27,29 @@ export async function GET(request) {
     const tokens = await tokenRes.json()
 
     if (tokens.error) {
-      console.error('Token error:', tokens)
       return NextResponse.redirect(new URL(`/?error=${tokens.error}`, request.url))
     }
 
-    const response = NextResponse.redirect(new URL('/?connected=true', request.url))
-    
-    const cookieOptions = {
-      httpOnly: true,
-      secure: true,
-      path: '/',
-      sameSite: 'lax',
-    }
+    const html = `
+<!DOCTYPE html>
+<html>
+<head><title>Connecting...</title></head>
+<body>
+<script>
+  document.cookie = "access_token=${tokens.access_token}; path=/; max-age=3600; SameSite=Lax";
+  ${tokens.refresh_token ? `document.cookie = "refresh_token=${tokens.refresh_token}; path=/; max-age=2592000; SameSite=Lax";` : ''}
+  document.cookie = "authed=true; path=/; max-age=2592000; SameSite=Lax";
+  window.location.href = "/?connected=true";
+</script>
+<p>Connecting to Gmail... please wait.</p>
+</body>
+</html>`
 
-    response.cookies.set('access_token', tokens.access_token, {
-      ...cookieOptions,
-      maxAge: 3600,
+    return new Response(html, {
+      headers: { 'Content-Type': 'text/html' },
     })
 
-    if (tokens.refresh_token) {
-      response.cookies.set('refresh_token', tokens.refresh_token, {
-        ...cookieOptions,
-        maxAge: 60 * 60 * 24 * 30,
-      })
-    }
-
-    return response
   } catch (e) {
-    console.error('Callback error:', e)
     return NextResponse.redirect(new URL(`/?error=callback_failed`, request.url))
   }
 }
