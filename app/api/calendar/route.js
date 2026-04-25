@@ -1,28 +1,13 @@
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 
-async function getAccessToken() {
-  const cookieStore = cookies()
-  let token = cookieStore.get('access_token')?.value
-  if (token) return token
-  const refresh = cookieStore.get('refresh_token')?.value
-  if (!refresh) return null
-  const res = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_id: process.env.GOOGLE_CLIENT_ID,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET,
-      refresh_token: refresh,
-      grant_type: 'refresh_token',
-    }),
-  })
-  const data = await res.json()
-  return data.access_token || null
+function getAccessToken(request) {
+  const auth = request.headers.get('Authorization')
+  if (auth?.startsWith('Bearer ')) return auth.replace('Bearer ', '').trim()
+  return null
 }
 
-export async function GET() {
-  const token = await getAccessToken()
+export async function GET(request) {
+  const token = getAccessToken(request)
   if (!token) return NextResponse.json({ error: 'not_authenticated' }, { status: 401 })
 
   const now = new Date()
@@ -39,9 +24,7 @@ export async function GET() {
       id: e.id,
       title: e.summary || 'Meeting',
       date: (e.start?.dateTime || e.start?.date || '').slice(0, 10),
-      time: e.start?.dateTime
-        ? new Date(e.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-        : '',
+      time: e.start?.dateTime ? new Date(e.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '',
       description: e.description || '',
       project: 'Other',
     }))
@@ -52,7 +35,7 @@ export async function GET() {
 }
 
 export async function POST(request) {
-  const token = await getAccessToken()
+  const token = getAccessToken(request)
   if (!token) return NextResponse.json({ error: 'not_authenticated' }, { status: 401 })
 
   const { title, date, time, description } = await request.json()
@@ -60,19 +43,15 @@ export async function POST(request) {
   const endDateTime = new Date(startDateTime.getTime() + 60 * 60 * 1000)
 
   try {
-    const res = await fetch(
-      'https://www.googleapis.com/calendar/v3/calendars/primary/events',
-      {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          summary: title,
-          description,
-          start: { dateTime: startDateTime.toISOString() },
-          end: { dateTime: endDateTime.toISOString() },
-        }),
-      }
-    )
+    const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        summary: title, description,
+        start: { dateTime: startDateTime.toISOString() },
+        end: { dateTime: endDateTime.toISOString() },
+      }),
+    })
     const data = await res.json()
     return NextResponse.json({ success: true, event: data })
   } catch (e) {

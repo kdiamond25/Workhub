@@ -1,35 +1,21 @@
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 
-async function getAccessToken() {
-  const cookieStore = cookies()
-  const token = cookieStore.get('access_token')?.value
-  if (token) return token
-
-  const refresh = cookieStore.get('refresh_token')?.value
-  if (!refresh) return null
-
-  const res = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_id: process.env.GOOGLE_CLIENT_ID,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET,
-      refresh_token: refresh,
-      grant_type: 'refresh_token',
-    }),
-  })
-  const data = await res.json()
-  return data.access_token || null
+async function getAccessToken(request) {
+  // Get token from Authorization header (sent by frontend)
+  const auth = request.headers.get('Authorization')
+  if (auth?.startsWith('Bearer ')) {
+    return auth.replace('Bearer ', '').trim()
+  }
+  return null
 }
 
 export async function GET(request) {
-  const token = await getAccessToken()
+  const token = await getAccessToken(request)
   if (!token) return NextResponse.json({ error: 'not_authenticated' }, { status: 401 })
 
   try {
     const listRes = await fetch(
-      'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=30&q=in:inbox',
+      'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=25&q=in:inbox',
       { headers: { Authorization: `Bearer ${token}` } }
     )
     const listData = await listRes.json()
@@ -80,21 +66,12 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const token = await getAccessToken()
+  const token = await getAccessToken(request)
   if (!token) return NextResponse.json({ error: 'not_authenticated' }, { status: 401 })
 
   const { to, subject, body } = await request.json()
-
-  const email = [
-    `To: ${to}`,
-    `Subject: ${subject}`,
-    'Content-Type: text/plain; charset=utf-8',
-    '',
-    body,
-  ].join('\n')
-
-  const encoded = Buffer.from(email).toString('base64')
-    .replace(/\+/g, '-').replace(/\//g, '_')
+  const email = [`To: ${to}`, `Subject: ${subject}`, 'Content-Type: text/plain; charset=utf-8', '', body].join('\n')
+  const encoded = Buffer.from(email).toString('base64').replace(/\+/g, '-').replace(/\//g, '_')
 
   try {
     const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
