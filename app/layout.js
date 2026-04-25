@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 export const metadata = {
   title: 'WorkHub — True Citrus',
   description: 'Email and project management for Kim Diamond',
@@ -5,7 +7,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -21,7 +23,7 @@ export default function RootLayout({ children }) {
           @keyframes spin { to { transform: rotate(360deg); } }
         `}</style>
       </head>
-      <body>{children}</body>
+      <body suppressHydrationWarning>{children}</body>
     </html>
   )
 }
