@@ -51,20 +51,26 @@ function classifyProject(text) {
   return 'Other'
 }
 
+// Safe localStorage — only runs in browser
+function lsGet(key) {
+  try { return typeof window !== 'undefined' ? localStorage.getItem(key) : null } catch { return null }
+}
+function lsSet(key, val) {
+  try { if (typeof window !== 'undefined') localStorage.setItem(key, val) } catch {}
+}
+function lsDel(key) {
+  try { if (typeof window !== 'undefined') localStorage.removeItem(key) } catch {}
+}
 function getStoredToken() {
-  try {
-    const token = localStorage.getItem('wh_access_token')
-    const expiry = parseInt(localStorage.getItem('wh_token_expiry')||'0')
-    if (token && expiry > Date.now()) return token
-    if (token && expiry <= Date.now()) {
-      localStorage.removeItem('wh_access_token')
-      localStorage.removeItem('wh_token_expiry')
-    }
-    return null
-  } catch(e) { return null }
+  const token = lsGet('wh_access_token')
+  const expiry = parseInt(lsGet('wh_token_expiry') || '0')
+  if (token && expiry > Date.now()) return token
+  if (token) { lsDel('wh_access_token'); lsDel('wh_token_expiry') }
+  return null
 }
 
 export default function App() {
+  const [mounted, setMounted] = useState(false)
   const [accessToken, setAccessToken] = useState(null)
   const [authed, setAuthed] = useState(false)
   const [page, setPage] = useState('dashboard')
@@ -83,12 +89,13 @@ export default function App() {
   const [toast, setToast] = useState(null)
   const chatEnd = useRef(null)
 
+  // Only run client-side after mount — prevents hydration mismatch
   useEffect(() => {
+    setMounted(true)
     const params = new URLSearchParams(window.location.search)
 
     if (params.get('connected') === 'true') {
       window.history.replaceState({}, '', '/')
-      // Small delay to ensure localStorage was written by callback page
       setTimeout(() => {
         const token = getStoredToken()
         if (token) {
@@ -97,9 +104,9 @@ export default function App() {
           syncGmailWithToken(token)
           showToast('Gmail connected! Loading emails...', 'success')
         } else {
-          showToast('Connection failed — please try again', 'error')
+          showToast('Token not found — please try again', 'error')
         }
-      }, 200)
+      }, 300)
       return
     }
 
@@ -109,7 +116,6 @@ export default function App() {
       return
     }
 
-    // On normal load, check for existing token
     const token = getStoredToken()
     if (token) {
       setAccessToken(token)
@@ -128,55 +134,49 @@ export default function App() {
   async function syncGmailWithToken(token) {
     setLoading(l=>({...l,gmail:true}))
     try {
-      const res = await fetch('/api/gmail', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const res = await fetch('/api/gmail', { headers:{Authorization:`Bearer ${token}`} })
       if (res.status === 401) {
-        localStorage.removeItem('wh_access_token')
-        localStorage.removeItem('wh_authed')
-        setAuthed(false)
-        setAccessToken(null)
+        lsDel('wh_access_token'); lsDel('wh_authed')
+        setAuthed(false); setAccessToken(null)
         showToast('Session expired — please reconnect Gmail', 'error')
         return
       }
       const data = await res.json()
       if (data.emails) {
-        setEmails(data.emails.map(e=>({...e, project:classifyProject(e.subject+' '+e.preview+' '+e.from)})))
+        setEmails(data.emails.map(e=>({...e,project:classifyProject(e.subject+' '+e.preview+' '+e.from)})))
         showToast(`${data.emails.length} emails loaded`, 'success')
-      } else if (data.error) {
-        showToast('Gmail error: ' + data.error, 'error')
       }
-    } catch(e) { showToast('Gmail sync failed: '+e.message, 'error') }
+    } catch(e) { showToast('Gmail sync failed: '+e.message,'error') }
     setLoading(l=>({...l,gmail:false}))
   }
 
   async function syncGmail() {
-    const token = getStoredToken() || accessToken
+    const token = getStoredToken()||accessToken
     if (!token) { window.location.href='/api/auth/login'; return }
     syncGmailWithToken(token)
   }
 
   async function syncCalendar() {
-    const token = getStoredToken() || accessToken
+    const token = getStoredToken()||accessToken
     if (!token) { window.location.href='/api/auth/login'; return }
     setLoading(l=>({...l,calendar:true}))
     try {
-      const res = await fetch('/api/calendar', { headers:{Authorization:`Bearer ${token}`} })
+      const res = await fetch('/api/calendar', {headers:{Authorization:`Bearer ${token}`}})
       const data = await res.json()
       if (data.events) {
         setMeetings(data.events.map(e=>({...e,project:classifyProject(e.title+' '+e.description)})))
-        showToast(`${data.events.length} events loaded`, 'success')
+        showToast(`${data.events.length} events loaded`,'success')
       }
     } catch(e) { showToast('Calendar sync failed','error') }
     setLoading(l=>({...l,calendar:false}))
   }
 
   async function syncDrive() {
-    const token = getStoredToken() || accessToken
+    const token = getStoredToken()||accessToken
     if (!token) { window.location.href='/api/auth/login'; return }
     setLoading(l=>({...l,drive:true}))
     try {
-      const res = await fetch('/api/drive', { headers:{Authorization:`Bearer ${token}`} })
+      const res = await fetch('/api/drive', {headers:{Authorization:`Bearer ${token}`}})
       const data = await res.json()
       if (data.files) {
         const byProj={}
@@ -187,7 +187,7 @@ export default function App() {
         })
         setProjData(prev=>{
           const u={...prev}
-          Object.entries(byProj).forEach(([p,files])=>{if(u[p]) u[p]={...u[p],driveFiles:files}})
+          Object.entries(byProj).forEach(([p,files])=>{if(u[p])u[p]={...u[p],driveFiles:files}})
           return u
         })
         showToast(`${data.files.length} Drive files linked`,'success')
@@ -199,11 +199,7 @@ export default function App() {
   async function runTriage() {
     setLoading(l=>({...l,triage:true}))
     try {
-      const res = await fetch('/api/triage',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({emails,projects}),
-      })
+      const res = await fetch('/api/triage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({emails,projects})})
       const data = await res.json()
       if (data.results) {
         let newTasks=[...tasks]
@@ -215,7 +211,7 @@ export default function App() {
         }))
         setTasks(newTasks)
         showToast(`Triage complete — ${data.results.length} emails classified`,'success')
-        setChat(c=>[...c,{role:'agent',text:`Triage complete. Processed ${data.results.length} emails. ${data.results.filter(r=>r.confidence==='low').length} flagged for review. Anything look wrong?`}])
+        setChat(c=>[...c,{role:'agent',text:`Triage complete. ${data.results.length} emails processed. ${data.results.filter(r=>r.confidence==='low').length} flagged for review.`}])
       }
     } catch(e) { showToast('Triage failed','error') }
     setLoading(l=>({...l,triage:false}))
@@ -223,16 +219,11 @@ export default function App() {
 
   async function sendAgentMessage() {
     if(!chatInput.trim()) return
-    const msg=chatInput.trim()
-    setChatInput('')
+    const msg=chatInput.trim(); setChatInput('')
     setChat(c=>[...c,{role:'user',text:msg}])
     setLoading(l=>({...l,agent:true}))
     try {
-      const res=await fetch('/api/agent',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({message:msg,emails,tasks,projects,meetings}),
-      })
+      const res=await fetch('/api/agent',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg,emails,tasks,projects,meetings})})
       const data=await res.json()
       if(data.reply) setChat(c=>[...c,{role:'agent',text:data.reply}])
       if(data.actions){
@@ -248,24 +239,23 @@ export default function App() {
     const token=getStoredToken()||accessToken
     if(!compose||!token) return
     try {
-      const res=await fetch('/api/gmail',{
-        method:'POST',
-        headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},
-        body:JSON.stringify(compose),
-      })
+      const res=await fetch('/api/gmail',{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify(compose)})
       const data=await res.json()
       if(data.success){showToast('Email sent!','success');setCompose(null)}
     } catch(e){showToast('Send failed','error')}
   }
 
-  function moveEmail(id,project) {
+  function moveEmail(id,project){
     setEmails(prev=>prev.map(e=>e.id===id?{...e,project,manualOverride:true,agentLowConf:false}:e))
     if(selectedEmail?.id===id) setSelectedEmail(e=>({...e,project}))
   }
-  function changePriority(id,priority) {
+  function changePriority(id,priority){
     setEmails(prev=>prev.map(e=>e.id===id?{...e,priority,manualOverride:true}:e))
     if(selectedEmail?.id===id) setSelectedEmail(e=>({...e,priority}))
   }
+
+  // Don't render until mounted on client — prevents hydration mismatch
+  if (!mounted) return <div style={{display:'flex',height:'100vh',alignItems:'center',justifyContent:'center',fontFamily:'sans-serif',color:'#888'}}>Loading WorkHub...</div>
 
   const today=new Date().toISOString().slice(0,10)
   const cp=page.startsWith('proj:')?page.replace('proj:',''):null
@@ -275,8 +265,8 @@ export default function App() {
   const highCount=emails.filter(e=>e.priority==='high').length
   const lowConf=emails.filter(e=>e.agentLowConf)
 
-  function SH({title,count,onExpand,accent='#534AB7'}) {
-    return (
+  function SH({title,count,onExpand,accent='#534AB7'}){
+    return(
       <div style={{display:'flex',alignItems:'center',gap:10,padding:'14px 20px 10px',borderBottom:`2px solid ${accent}`}}>
         <div style={{width:3,height:16,background:accent,flexShrink:0}}/>
         <span style={{fontSize:12,fontWeight:600,letterSpacing:0.5,textTransform:'uppercase'}}>{title}</span>
@@ -286,10 +276,9 @@ export default function App() {
     )
   }
 
-  function EmailRow({e,showProject=true}) {
-    const c=PC[e.project]||PC.Other
-    const sel=selectedEmail?.id===e.id
-    return (
+  function EmailRow({e,showProject=true}){
+    const c=PC[e.project]||PC.Other; const sel=selectedEmail?.id===e.id
+    return(
       <div onClick={()=>setSelectedEmail(sel?null:e)} style={{padding:'12px 20px',borderBottom:'1px solid #e8e8e4',cursor:'pointer',background:sel?c.bg:'transparent',borderLeft:`4px solid ${sel?c.a:'transparent'}`}}>
         <div style={{display:'flex',gap:12}}>
           <div style={{width:36,height:36,borderRadius:2,background:c.a,color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,flexShrink:0}}>
@@ -313,9 +302,9 @@ export default function App() {
     )
   }
 
-  function EmailDetail({email}) {
+  function EmailDetail({email}){
     const c=PC[email.project]||PC.Other
-    return (
+    return(
       <div style={{background:'#fff',borderTop:`4px solid ${c.a}`,border:`1px solid ${c.b}`}}>
         <div style={{padding:'16px 20px',borderBottom:'1px solid #e8e8e4'}}>
           <div style={{fontSize:15,fontWeight:600,marginBottom:8,lineHeight:1.4}}>{email.subject}</div>
@@ -323,8 +312,7 @@ export default function App() {
             <span style={{fontSize:12,color:'#555'}}>{email.from}</span>
             <span style={{color:'#ccc'}}>·</span>
             <span style={{fontSize:12,color:'#888'}}>{email.date}</span>
-            {priTag(email.priority)}
-            {tag(email.project,email.project)}
+            {priTag(email.priority)}{tag(email.project,email.project)}
             {email.needsReply&&<span style={{fontSize:11,background:'#FCEBEB',color:'#791F1F',border:'1px solid #F09595',padding:'2px 8px',borderRadius:2}}>Needs reply</span>}
             {email.waitingReply&&<span style={{fontSize:11,background:'#FAEEDA',color:'#633806',border:'1px solid #EF9F27',padding:'2px 8px',borderRadius:2}}>Waiting on response</span>}
           </div>
@@ -337,16 +325,16 @@ export default function App() {
         <div style={{padding:'12px 20px',borderBottom:'1px solid #e8e8e4',background:'#fafaf8'}}>
           <div style={{fontSize:11,color:'#888',marginBottom:8,textTransform:'uppercase',letterSpacing:0.5}}>Move to project</div>
           <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-            {[...projects,'Other'].map(p=>{const pc=PC[p]||PC.Other;const active=email.project===p;return <button key={p} onClick={()=>moveEmail(email.id,p)} style={{fontSize:11,padding:'4px 12px',borderRadius:2,background:active?pc.a:'#fff',color:active?'#fff':'#555',border:active?`1px solid ${pc.a}`:'1px solid #d0d0cc',fontWeight:active?600:400}}>{p}</button>})}
+            {[...projects,'Other'].map(p=>{const pc=PC[p]||PC.Other;const active=email.project===p;return<button key={p} onClick={()=>moveEmail(email.id,p)} style={{fontSize:11,padding:'4px 12px',borderRadius:2,background:active?pc.a:'#fff',color:active?'#fff':'#555',border:active?`1px solid ${pc.a}`:'1px solid #d0d0cc',fontWeight:active?600:400}}>{p}</button>})}
           </div>
         </div>
         <div style={{padding:'12px 20px',background:'#fafaf8'}}>
           <div style={{fontSize:11,color:'#888',marginBottom:8,textTransform:'uppercase',letterSpacing:0.5}}>Priority</div>
           <div style={{display:'flex',gap:6,marginBottom:12}}>
-            {['high','normal','low'].map(p=>{const pc=PRI[p];const active=email.priority===p;return <button key={p} onClick={()=>changePriority(email.id,p)} style={{fontSize:11,padding:'4px 12px',borderRadius:2,background:active?pc.t:'#fff',color:active?'#fff':'#555',border:active?`1px solid ${pc.t}`:'1px solid #d0d0cc',fontWeight:active?600:400}}>{pc.l}</button>})}
+            {['high','normal','low'].map(p=>{const pc=PRI[p];const active=email.priority===p;return<button key={p} onClick={()=>changePriority(email.id,p)} style={{fontSize:11,padding:'4px 12px',borderRadius:2,background:active?pc.t:'#fff',color:active?'#fff':'#555',border:active?`1px solid ${pc.t}`:'1px solid #d0d0cc',fontWeight:active?600:400}}>{pc.l}</button>})}
           </div>
           <div style={{display:'flex',gap:8}}>
-            <button onClick={()=>{setChat(c=>[...c,{role:'user',text:`Draft a reply to: "${email.subject}" from ${email.from}`}]);setPage('agent')}} style={{fontSize:12,padding:'7px 16px',background:c.a,color:'#fff',border:'none',borderRadius:2,fontWeight:500}}>Draft reply via agent</button>
+            <button onClick={()=>{setChat(cc=>[...cc,{role:'user',text:`Draft a reply to: "${email.subject}" from ${email.from}`}]);setPage('agent')}} style={{fontSize:12,padding:'7px 16px',background:c.a,color:'#fff',border:'none',borderRadius:2,fontWeight:500}}>Draft reply via agent</button>
             <button onClick={()=>{setChatInput(`The email "${email.subject}" was classified as ${email.project} — is that right?`);setPage('agent')}} style={{fontSize:12,padding:'7px 16px',borderRadius:2}}>Ask agent to fix</button>
           </div>
         </div>
@@ -364,8 +352,9 @@ export default function App() {
     ...projects.map(p=>({id:'proj:'+p,label:p,color:PC[p]?.a,count:emails.filter(e=>e.project===p&&!e.read).length||null})),
   ]
 
-  return (
+  return(
     <div style={{display:'flex',height:'100vh',overflow:'hidden'}}>
+      {/* Sidebar */}
       <div style={{width:220,background:'#16213e',display:'flex',flexDirection:'column',flexShrink:0}}>
         <div style={{padding:'20px 18px 14px',borderBottom:'1px solid rgba(255,255,255,0.07)'}}>
           <div style={{fontSize:18,fontWeight:700,color:'#fff',letterSpacing:-0.5}}>WorkHub</div>
@@ -382,7 +371,7 @@ export default function App() {
           {sideNav.map((item,i)=>{
             if(!item) return <div key={i} style={{height:1,background:'rgba(255,255,255,0.07)',margin:'8px 0'}}/>
             const active=page===item.id
-            return (
+            return(
               <div key={item.id} onClick={()=>setPage(item.id)} style={{padding:'9px 18px',cursor:'pointer',display:'flex',alignItems:'center',gap:10,background:active?'rgba(255,255,255,0.09)':'transparent',borderLeft:`3px solid ${active?(item.color||'#7F77DD'):'transparent'}`}}>
                 {item.color&&<div style={{width:8,height:8,background:item.color,borderRadius:1,flexShrink:0}}/>}
                 <span style={{fontSize:13,color:active?'#fff':'rgba(255,255,255,0.55)',fontWeight:active?500:400,flex:1}}>{item.label}</span>
@@ -398,10 +387,11 @@ export default function App() {
           {lowConf.length>0&&<div style={{background:'#FAEEDA',color:'#633806',border:'1px solid #EF9F27',padding:'6px 10px',borderRadius:2,fontSize:11,fontWeight:500}}>⚠ {lowConf.length} email{lowConf.length>1?'s':''} need review</div>}
           <button onClick={runTriage} disabled={loading.triage} style={{padding:'8px',background:loading.triage?'rgba(255,255,255,0.08)':'#534AB7',color:'#fff',border:'none',borderRadius:2,fontWeight:600,fontSize:12}}>{loading.triage?'Running...':'Run AI triage'}</button>
           {!authed&&<button onClick={()=>window.location.href='/api/auth/login'} style={{padding:'7px',background:'#0F6E56',color:'#fff',border:'none',borderRadius:2,fontSize:12,fontWeight:600}}>Connect Gmail →</button>}
-          {authed&&<button onClick={()=>{localStorage.clear();setAuthed(false);setAccessToken(null);setEmails([]);showToast('Disconnected','info')}} style={{padding:'5px',background:'rgba(255,255,255,0.04)',color:'rgba(255,255,255,0.3)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:2,fontSize:11}}>Disconnect</button>}
+          {authed&&<button onClick={()=>{lsDel('wh_access_token');lsDel('wh_refresh_token');lsDel('wh_authed');setAuthed(false);setAccessToken(null);setEmails([]);showToast('Disconnected','info')}} style={{padding:'5px',background:'rgba(255,255,255,0.04)',color:'rgba(255,255,255,0.3)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:2,fontSize:11}}>Disconnect</button>}
         </div>
       </div>
 
+      {/* Main */}
       <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',minWidth:0}}>
 
         {page==='dashboard'&&(
@@ -440,7 +430,7 @@ export default function App() {
             <div style={{display:'grid',gridTemplateColumns:'minmax(0,1.4fr) minmax(0,1fr)',gap:20}}>
               <div style={{background:'#fff',border:'1px solid #e8e8e4'}}>
                 <SH title="Recent emails" count={emails.length} accent="#534AB7" onExpand={()=>setPage('inbox')}/>
-                {emails.length===0&&<div style={{padding:24,color:'#888',fontSize:13}}>{authed?'Syncing emails...':'Connect Gmail to load emails.'}</div>}
+                {emails.length===0&&<div style={{padding:24,color:'#888',fontSize:13}}>{authed?'Loading emails...':'Connect Gmail to load emails.'}</div>}
                 {emails.slice(0,5).map(e=><EmailRow key={e.id} e={e}/>)}
                 {selectedEmail&&emails.slice(0,5).find(e=>e.id===selectedEmail.id)&&<EmailDetail email={selectedEmail}/>}
               </div>
@@ -467,7 +457,7 @@ export default function App() {
                 {meetings.length===0&&<div style={{padding:24,color:'#888',fontSize:13}}>Sync Calendar to load meetings.</div>}
                 {meetings.filter(m=>m.date>=today).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,5).map(m=>{
                   const c=PC[m.project]||PC.Other;const d=new Date(m.date+'T12:00')
-                  return (
+                  return(
                     <div key={m.id} style={{padding:'12px 20px',borderBottom:'1px solid #e8e8e4',display:'flex',gap:14,alignItems:'center'}}>
                       <div style={{width:44,textAlign:'center',background:c.bg,border:`1px solid ${c.b}`,padding:'6px 0',flexShrink:0}}>
                         <div style={{fontSize:9,fontWeight:600,color:c.t,textTransform:'uppercase'}}>{d.toLocaleString('en-US',{month:'short'})}</div>
@@ -486,7 +476,7 @@ export default function App() {
                 <div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))'}}>
                   {projects.map(p=>{
                     const c=PC[p]||PC.Other
-                    return (
+                    return(
                       <div key={p} onClick={()=>setPage('proj:'+p)} style={{padding:'14px 16px',borderBottom:'1px solid #e8e8e4',borderRight:'1px solid #e8e8e4',cursor:'pointer',borderTop:`3px solid ${c.a}`}}>
                         <div style={{fontSize:13,fontWeight:600,marginBottom:8}}>{p}</div>
                         <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
@@ -552,7 +542,7 @@ export default function App() {
               {meetings.length===0&&<div style={{padding:24,color:'#888',fontSize:13}}>Sync Calendar to load your meetings.</div>}
               {meetings.sort((a,b)=>a.date.localeCompare(b.date)).map(m=>{
                 const c=PC[m.project]||PC.Other;const d=new Date(m.date+'T12:00')
-                return (
+                return(
                   <div key={m.id} style={{padding:'16px 20px',borderBottom:'1px solid #e8e8e4',display:'flex',gap:16,alignItems:'center',borderLeft:`4px solid ${c.a}`}}>
                     <div style={{width:56,textAlign:'center',background:c.bg,border:`1px solid ${c.b}`,padding:'8px 0',flexShrink:0}}>
                       <div style={{fontSize:10,fontWeight:600,color:c.t,textTransform:'uppercase'}}>{d.toLocaleString('en-US',{month:'short'})}</div>
@@ -588,7 +578,7 @@ export default function App() {
               <div ref={chatEnd}/>
             </div>
             <div style={{padding:'14px 20px',borderTop:'1px solid #e8e8e4',background:'#fff',display:'flex',gap:10,flexShrink:0}}>
-              <textarea value={chatInput} onChange={e=>setChatInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendAgentMessage()}}} placeholder='Try: "Move the IRI email to high priority" or "Draft a reply to the most recent email"' rows={2} style={{flex:1,fontSize:13,resize:'none',lineHeight:1.5,padding:'8px 12px'}}/>
+              <textarea value={chatInput} onChange={e=>setChatInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendAgentMessage()}}} placeholder='Try: "Move the IRI email to high priority" or "Draft a reply to most recent email"' rows={2} style={{flex:1,fontSize:13,resize:'none',lineHeight:1.5,padding:'8px 12px'}}/>
               <button onClick={sendAgentMessage} disabled={loading.agent} style={{padding:'0 20px',background:'#534AB7',color:'#fff',border:'none',borderRadius:2,fontSize:13,fontWeight:500,alignSelf:'stretch'}}>Send</button>
             </div>
             <div style={{padding:'8px 20px',background:'#f4f4f0',borderTop:'1px solid #e8e8e4',display:'flex',gap:6,flexWrap:'wrap'}}>
