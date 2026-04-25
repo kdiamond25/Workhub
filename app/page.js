@@ -14,13 +14,11 @@ const PC = {
   'HH Panel':    { a:'#185FA5', bg:'#E6F1FB', t:'#042C53', b:'#85B7EB' },
   Other:         { a:'#5F5E5A', bg:'#F1EFE8', t:'#2C2C2A', b:'#B4B2A9' },
 }
-
 const PRI = {
   high:   { bg:'#FCEBEB', t:'#791F1F', b:'#F09595', l:'High' },
   normal: { bg:'#E6F1FB', t:'#0C447C', b:'#85B7EB', l:'Normal' },
   low:    { bg:'#EAF3DE', t:'#27500A', b:'#97C459', l:'Low' },
 }
-
 const SC = {
   Active:    { bg:'#E1F5EE', t:'#085041', b:'#5DCAA5' },
   'On Hold': { bg:'#FAEEDA', t:'#633806', b:'#EF9F27' },
@@ -28,29 +26,42 @@ const SC = {
 }
 
 function tag(label, color) {
-  const c = PC[color] || PC.Other
+  const c = PC[color]||PC.Other
   return <span style={{display:'inline-block',background:c.bg,color:c.t,border:`1px solid ${c.b}`,fontSize:11,padding:'2px 8px',borderRadius:2,fontWeight:500,whiteSpace:'nowrap'}}>{label}</span>
 }
 function priTag(p) {
-  const c = PRI[p] || PRI.normal
+  const c = PRI[p]||PRI.normal
   return <span style={{display:'inline-block',background:c.bg,color:c.t,border:`1px solid ${c.b}`,fontSize:11,padding:'2px 8px',borderRadius:2,fontWeight:500}}>{c.l}</span>
 }
 function statTag(s) {
-  const c = SC[s] || SC.Active
+  const c = SC[s]||SC.Active
   return <span style={{display:'inline-block',background:c.bg,color:c.t,border:`1px solid ${c.b}`,fontSize:11,padding:'2px 8px',borderRadius:2,fontWeight:500}}>{s}</span>
 }
 
 function classifyProject(text) {
-  const t = (text || '').toLowerCase()
-  if (t.includes('syndigo')) return 'Syndigo'
-  if (t.includes('sample')) return 'Samples'
-  if (t.includes('coupon')) return 'Coupons'
-  if (t.includes('present') || t.includes('deck') || t.includes('slide')) return 'Presentations'
-  if (t.includes('jotform') || t.includes('form submission')) return 'Jotform'
-  if (t.includes('chatbot') || t.includes('widget') || t.includes('bot')) return 'Chatbot'
-  if (t.includes('iri') || t.includes('nielsen')) return 'IRI'
-  if (t.includes('hh panel') || t.includes('household')) return 'HH Panel'
+  const t=(text||'').toLowerCase()
+  if(t.includes('syndigo')) return 'Syndigo'
+  if(t.includes('sample')) return 'Samples'
+  if(t.includes('coupon')) return 'Coupons'
+  if(t.includes('present')||t.includes('deck')||t.includes('slide')) return 'Presentations'
+  if(t.includes('jotform')||t.includes('form submission')) return 'Jotform'
+  if(t.includes('chatbot')||t.includes('widget')||t.includes('bot')) return 'Chatbot'
+  if(t.includes('iri')||t.includes('nielsen')) return 'IRI'
+  if(t.includes('hh panel')||t.includes('household')) return 'HH Panel'
   return 'Other'
+}
+
+function getStoredToken() {
+  try {
+    const token = localStorage.getItem('wh_access_token')
+    const expiry = parseInt(localStorage.getItem('wh_token_expiry')||'0')
+    if (token && expiry > Date.now()) return token
+    if (token && expiry <= Date.now()) {
+      localStorage.removeItem('wh_access_token')
+      localStorage.removeItem('wh_token_expiry')
+    }
+    return null
+  } catch(e) { return null }
 }
 
 export default function App() {
@@ -61,10 +72,10 @@ export default function App() {
   const [tasks, setTasks] = useState([])
   const [meetings, setMeetings] = useState([])
   const [projects, setProjects] = useState(PROJECTS)
-  const [projData, setProjData] = useState(Object.fromEntries(PROJECTS.map(p => [p, { status: 'Active', notes: '' }])))
+  const [projData, setProjData] = useState(Object.fromEntries(PROJECTS.map(p=>[p,{status:'Active',notes:''}])))
   const [selectedEmail, setSelectedEmail] = useState(null)
   const [loading, setLoading] = useState({gmail:false,calendar:false,drive:false,agent:false,triage:false})
-  const [chat, setChat] = useState([{role:'agent',text:"Hi Kim! I'm your WorkHub agent. Click 'Connect Gmail' to get started, then I can triage your emails, draft replies, and manage tasks."}])
+  const [chat, setChat] = useState([{role:'agent',text:"Hi Kim! I'm your WorkHub agent. Click 'Connect Gmail' to get started."}])
   const [chatInput, setChatInput] = useState('')
   const [newTask, setNewTask] = useState('')
   const [newProj, setNewProj] = useState('')
@@ -73,229 +84,229 @@ export default function App() {
   const chatEnd = useRef(null)
 
   useEffect(() => {
-    // Check sessionStorage for token
-    try {
-      const token = sessionStorage.getItem('wh_access_token')
-      const isAuthed = sessionStorage.getItem('wh_authed')
-      if (token && isAuthed) {
-        setAccessToken(token)
-        setAuthed(true)
-        // Auto-sync gmail on load
-        syncGmailWithToken(token)
-      }
-    } catch(e) {}
-
-    // Check URL params
     const params = new URLSearchParams(window.location.search)
+
     if (params.get('connected') === 'true') {
       window.history.replaceState({}, '', '/')
+      // Small delay to ensure localStorage was written by callback page
       setTimeout(() => {
-        try {
-          const token = sessionStorage.getItem('wh_access_token')
-          if (token) {
-            setAccessToken(token)
-            setAuthed(true)
-            syncGmailWithToken(token)
-            showToast('Gmail connected!', 'success')
-          }
-        } catch(e) {}
-      }, 300)
+        const token = getStoredToken()
+        if (token) {
+          setAccessToken(token)
+          setAuthed(true)
+          syncGmailWithToken(token)
+          showToast('Gmail connected! Loading emails...', 'success')
+        } else {
+          showToast('Connection failed — please try again', 'error')
+        }
+      }, 200)
+      return
     }
+
     if (params.get('error')) {
       showToast('Auth error: ' + params.get('error'), 'error')
       window.history.replaceState({}, '', '/')
+      return
+    }
+
+    // On normal load, check for existing token
+    const token = getStoredToken()
+    if (token) {
+      setAccessToken(token)
+      setAuthed(true)
+      syncGmailWithToken(token)
     }
   }, [])
 
   useEffect(() => { chatEnd.current?.scrollIntoView({behavior:'smooth'}) }, [chat])
 
-  function authHeaders(token) {
-    return { 'Authorization': `Bearer ${token || accessToken}`, 'Content-Type': 'application/json' }
-  }
-
   function showToast(msg, type='info') {
     setToast({msg,type})
-    setTimeout(() => setToast(null), 3500)
+    setTimeout(()=>setToast(null), 4000)
   }
 
   async function syncGmailWithToken(token) {
-    setLoading(l => ({...l, gmail:true}))
+    setLoading(l=>({...l,gmail:true}))
     try {
-      const res = await fetch('/api/gmail', { headers: { Authorization: `Bearer ${token}` } })
-      if (res.status === 401) { showToast('Session expired — please reconnect Gmail', 'error'); setAuthed(false); return }
+      const res = await fetch('/api/gmail', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (res.status === 401) {
+        localStorage.removeItem('wh_access_token')
+        localStorage.removeItem('wh_authed')
+        setAuthed(false)
+        setAccessToken(null)
+        showToast('Session expired — please reconnect Gmail', 'error')
+        return
+      }
       const data = await res.json()
       if (data.emails) {
-        setEmails(data.emails.map(e => ({...e, project: classifyProject(e.subject + ' ' + e.preview + ' ' + e.from)})))
+        setEmails(data.emails.map(e=>({...e, project:classifyProject(e.subject+' '+e.preview+' '+e.from)})))
         showToast(`${data.emails.length} emails loaded`, 'success')
+      } else if (data.error) {
+        showToast('Gmail error: ' + data.error, 'error')
       }
-    } catch(e) { showToast('Gmail sync failed: ' + e.message, 'error') }
-    setLoading(l => ({...l, gmail:false}))
+    } catch(e) { showToast('Gmail sync failed: '+e.message, 'error') }
+    setLoading(l=>({...l,gmail:false}))
   }
 
   async function syncGmail() {
-    if (!accessToken) { window.location.href = '/api/auth/login'; return }
-    syncGmailWithToken(accessToken)
+    const token = getStoredToken() || accessToken
+    if (!token) { window.location.href='/api/auth/login'; return }
+    syncGmailWithToken(token)
   }
 
   async function syncCalendar() {
-    if (!accessToken) { window.location.href = '/api/auth/login'; return }
-    setLoading(l => ({...l, calendar:true}))
+    const token = getStoredToken() || accessToken
+    if (!token) { window.location.href='/api/auth/login'; return }
+    setLoading(l=>({...l,calendar:true}))
     try {
-      const res = await fetch('/api/calendar', { headers: { Authorization: `Bearer ${accessToken}` } })
+      const res = await fetch('/api/calendar', { headers:{Authorization:`Bearer ${token}`} })
       const data = await res.json()
       if (data.events) {
-        setMeetings(data.events.map(e => ({...e, project: classifyProject(e.title + ' ' + e.description)})))
+        setMeetings(data.events.map(e=>({...e,project:classifyProject(e.title+' '+e.description)})))
         showToast(`${data.events.length} events loaded`, 'success')
       }
-    } catch(e) { showToast('Calendar sync failed', 'error') }
-    setLoading(l => ({...l, calendar:false}))
+    } catch(e) { showToast('Calendar sync failed','error') }
+    setLoading(l=>({...l,calendar:false}))
   }
 
   async function syncDrive() {
-    if (!accessToken) { window.location.href = '/api/auth/login'; return }
-    setLoading(l => ({...l, drive:true}))
+    const token = getStoredToken() || accessToken
+    if (!token) { window.location.href='/api/auth/login'; return }
+    setLoading(l=>({...l,drive:true}))
     try {
-      const res = await fetch('/api/drive', { headers: { Authorization: `Bearer ${accessToken}` } })
+      const res = await fetch('/api/drive', { headers:{Authorization:`Bearer ${token}`} })
       const data = await res.json()
       if (data.files) {
-        const byProj = {}
-        data.files.forEach(f => {
-          const p = classifyProject(f.name)
-          if (!byProj[p]) byProj[p] = []
-          byProj[p].push({name:f.name, link:f.webViewLink, modified:f.modifiedTime?.slice(0,10)})
+        const byProj={}
+        data.files.forEach(f=>{
+          const p=classifyProject(f.name)
+          if(!byProj[p]) byProj[p]=[]
+          byProj[p].push({name:f.name,link:f.webViewLink,modified:f.modifiedTime?.slice(0,10)})
         })
-        setProjData(prev => {
-          const u = {...prev}
-          Object.entries(byProj).forEach(([p,files]) => { if(u[p]) u[p] = {...u[p], driveFiles:files} })
+        setProjData(prev=>{
+          const u={...prev}
+          Object.entries(byProj).forEach(([p,files])=>{if(u[p]) u[p]={...u[p],driveFiles:files}})
           return u
         })
-        showToast(`${data.files.length} Drive files linked`, 'success')
+        showToast(`${data.files.length} Drive files linked`,'success')
       }
-    } catch(e) { showToast('Drive sync failed', 'error') }
-    setLoading(l => ({...l, drive:false}))
+    } catch(e) { showToast('Drive sync failed','error') }
+    setLoading(l=>({...l,drive:false}))
   }
 
   async function runTriage() {
-    setLoading(l => ({...l, triage:true}))
+    setLoading(l=>({...l,triage:true}))
     try {
-      const res = await fetch('/api/triage', {
+      const res = await fetch('/api/triage',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({emails, projects}),
+        body:JSON.stringify({emails,projects}),
       })
       const data = await res.json()
       if (data.results) {
-        let newTasks = [...tasks]
-        setEmails(prev => prev.map(e => {
-          const r = data.results.find(x => String(x.id) === String(e.id))
-          if (!r) return e
-          if (r.hasTask && r.taskText) newTasks.push({id:Date.now()+Math.random(),text:r.taskText,project:r.project,done:false})
-          return {...e, project:r.project||e.project, priority:r.priority, needsReply:r.needsReply, waitingReply:r.waitingReply, read:true, agentReason:r.reason, agentLowConf:r.confidence==='low'}
+        let newTasks=[...tasks]
+        setEmails(prev=>prev.map(e=>{
+          const r=data.results.find(x=>String(x.id)===String(e.id))
+          if(!r) return e
+          if(r.hasTask&&r.taskText) newTasks.push({id:Date.now()+Math.random(),text:r.taskText,project:r.project,done:false})
+          return {...e,project:r.project||e.project,priority:r.priority,needsReply:r.needsReply,waitingReply:r.waitingReply,read:true,agentReason:r.reason,agentLowConf:r.confidence==='low'}
         }))
         setTasks(newTasks)
-        showToast(`Triage complete — ${data.results.length} emails classified`, 'success')
-        setChat(c => [...c, {role:'agent', text:`Triage complete. Processed ${data.results.length} emails. ${data.results.filter(r=>r.confidence==='low').length} flagged for review. Anything look wrong?`}])
+        showToast(`Triage complete — ${data.results.length} emails classified`,'success')
+        setChat(c=>[...c,{role:'agent',text:`Triage complete. Processed ${data.results.length} emails. ${data.results.filter(r=>r.confidence==='low').length} flagged for review. Anything look wrong?`}])
       }
-    } catch(e) { showToast('Triage failed', 'error') }
-    setLoading(l => ({...l, triage:false}))
+    } catch(e) { showToast('Triage failed','error') }
+    setLoading(l=>({...l,triage:false}))
   }
 
   async function sendAgentMessage() {
-    if (!chatInput.trim()) return
-    const msg = chatInput.trim()
+    if(!chatInput.trim()) return
+    const msg=chatInput.trim()
     setChatInput('')
-    setChat(c => [...c, {role:'user', text:msg}])
-    setLoading(l => ({...l, agent:true}))
+    setChat(c=>[...c,{role:'user',text:msg}])
+    setLoading(l=>({...l,agent:true}))
     try {
-      const res = await fetch('/api/agent', {
+      const res=await fetch('/api/agent',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({message:msg, emails, tasks, projects, meetings}),
+        body:JSON.stringify({message:msg,emails,tasks,projects,meetings}),
       })
-      const data = await res.json()
-      if (data.reply) setChat(c => [...c, {role:'agent', text:data.reply}])
-      if (data.actions) {
-        if (data.actions.emailUpdates?.length) {
-          setEmails(prev => prev.map(e => {
-            const u = data.actions.emailUpdates.find(x => String(x.id) === String(e.id))
-            return u ? {...e,...u,manualOverride:true,agentLowConf:false} : e
-          }))
-        }
-        if (data.actions.newTasks?.length) {
-          setTasks(prev => [...prev, ...data.actions.newTasks.map((t,i) => ({id:Date.now()+i,done:false,...t}))])
-        }
-        if (data.actions.draftReply) setCompose(data.actions.draftReply)
+      const data=await res.json()
+      if(data.reply) setChat(c=>[...c,{role:'agent',text:data.reply}])
+      if(data.actions){
+        if(data.actions.emailUpdates?.length) setEmails(prev=>prev.map(e=>{const u=data.actions.emailUpdates.find(x=>String(x.id)===String(e.id));return u?{...e,...u,manualOverride:true,agentLowConf:false}:e}))
+        if(data.actions.newTasks?.length) setTasks(prev=>[...prev,...data.actions.newTasks.map((t,i)=>({id:Date.now()+i,done:false,...t}))])
+        if(data.actions.draftReply) setCompose(data.actions.draftReply)
       }
-    } catch(e) { setChat(c => [...c, {role:'agent', text:'Error: '+e.message}]) }
-    setLoading(l => ({...l, agent:false}))
+    } catch(e) { setChat(c=>[...c,{role:'agent',text:'Error: '+e.message}]) }
+    setLoading(l=>({...l,agent:false}))
   }
 
   async function sendEmail() {
-    if (!compose || !accessToken) return
+    const token=getStoredToken()||accessToken
+    if(!compose||!token) return
     try {
-      const res = await fetch('/api/gmail', {
+      const res=await fetch('/api/gmail',{
         method:'POST',
-        headers: authHeaders(),
+        headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},
         body:JSON.stringify(compose),
       })
-      const data = await res.json()
-      if (data.success) { showToast('Email sent!','success'); setCompose(null) }
-    } catch(e) { showToast('Send failed','error') }
+      const data=await res.json()
+      if(data.success){showToast('Email sent!','success');setCompose(null)}
+    } catch(e){showToast('Send failed','error')}
   }
 
-  function moveEmail(id, project) {
-    setEmails(prev => prev.map(e => e.id===id ? {...e,project,manualOverride:true,agentLowConf:false} : e))
-    if (selectedEmail?.id===id) setSelectedEmail(e => ({...e,project}))
+  function moveEmail(id,project) {
+    setEmails(prev=>prev.map(e=>e.id===id?{...e,project,manualOverride:true,agentLowConf:false}:e))
+    if(selectedEmail?.id===id) setSelectedEmail(e=>({...e,project}))
+  }
+  function changePriority(id,priority) {
+    setEmails(prev=>prev.map(e=>e.id===id?{...e,priority,manualOverride:true}:e))
+    if(selectedEmail?.id===id) setSelectedEmail(e=>({...e,priority}))
   }
 
-  function changePriority(id, priority) {
-    setEmails(prev => prev.map(e => e.id===id ? {...e,priority,manualOverride:true} : e))
-    if (selectedEmail?.id===id) setSelectedEmail(e => ({...e,priority}))
-  }
+  const today=new Date().toISOString().slice(0,10)
+  const cp=page.startsWith('proj:')?page.replace('proj:',''):null
+  const unread=emails.filter(e=>!e.read).length
+  const needsReplyCount=emails.filter(e=>e.needsReply).length
+  const waitingCount=emails.filter(e=>e.waitingReply).length
+  const highCount=emails.filter(e=>e.priority==='high').length
+  const lowConf=emails.filter(e=>e.agentLowConf)
 
-  const today = new Date().toISOString().slice(0,10)
-  const cp = page.startsWith('proj:') ? page.replace('proj:','') : null
-  const unread = emails.filter(e => !e.read).length
-  const needsReplyCount = emails.filter(e => e.needsReply).length
-  const waitingCount = emails.filter(e => e.waitingReply).length
-  const highCount = emails.filter(e => e.priority==='high').length
-  const lowConf = emails.filter(e => e.agentLowConf)
-
-  function SectionHeader({title,count,onExpand,accent='#534AB7'}) {
+  function SH({title,count,onExpand,accent='#534AB7'}) {
     return (
       <div style={{display:'flex',alignItems:'center',gap:10,padding:'14px 20px 10px',borderBottom:`2px solid ${accent}`}}>
         <div style={{width:3,height:16,background:accent,flexShrink:0}}/>
         <span style={{fontSize:12,fontWeight:600,letterSpacing:0.5,textTransform:'uppercase'}}>{title}</span>
-        {count!=null && <span style={{fontSize:12,color:'#888'}}>({count})</span>}
-        {onExpand && <button onClick={onExpand} style={{marginLeft:'auto',fontSize:11,padding:'3px 12px',color:'#666',border:'1px solid #d0d0cc',borderRadius:2}}>Expand</button>}
+        {count!=null&&<span style={{fontSize:12,color:'#888'}}>({count})</span>}
+        {onExpand&&<button onClick={onExpand} style={{marginLeft:'auto',fontSize:11,padding:'3px 12px',color:'#666',border:'1px solid #d0d0cc',borderRadius:2}}>Expand</button>}
       </div>
     )
   }
 
-  function EmailRow({e, showProject=true}) {
-    const c = PC[e.project]||PC.Other
-    const sel = selectedEmail?.id===e.id
+  function EmailRow({e,showProject=true}) {
+    const c=PC[e.project]||PC.Other
+    const sel=selectedEmail?.id===e.id
     return (
-      <div onClick={()=>setSelectedEmail(sel?null:e)}
-        style={{padding:'12px 20px',borderBottom:'1px solid #e8e8e4',cursor:'pointer',background:sel?c.bg:'transparent',borderLeft:`4px solid ${sel?c.a:'transparent'}`}}>
+      <div onClick={()=>setSelectedEmail(sel?null:e)} style={{padding:'12px 20px',borderBottom:'1px solid #e8e8e4',cursor:'pointer',background:sel?c.bg:'transparent',borderLeft:`4px solid ${sel?c.a:'transparent'}`}}>
         <div style={{display:'flex',gap:12}}>
           <div style={{width:36,height:36,borderRadius:2,background:c.a,color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,flexShrink:0}}>
-            {(e.from||'').split('@')[0].slice(0,2).toUpperCase()}
+            {(e.from||'').replace(/<.*>/,'').trim().slice(0,2).toUpperCase()}
           </div>
           <div style={{flex:1,minWidth:0}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:3}}>
-              <span style={{fontSize:13,fontWeight:e.read?400:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-                {(e.from||'').replace(/<.*>/,'').trim()}
-              </span>
+              <span style={{fontSize:13,fontWeight:e.read?400:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{(e.from||'').replace(/<.*>/,'').trim()}</span>
               <div style={{display:'flex',gap:6,alignItems:'center',flexShrink:0}}>
-                {e.agentLowConf && <span style={{fontSize:10,background:'#FAEEDA',color:'#633806',border:'1px solid #EF9F27',padding:'1px 6px',borderRadius:2}}>review</span>}
+                {e.agentLowConf&&<span style={{fontSize:10,background:'#FAEEDA',color:'#633806',border:'1px solid #EF9F27',padding:'1px 6px',borderRadius:2}}>review</span>}
                 {priTag(e.priority)}
                 <span style={{fontSize:11,color:'#888'}}>{e.date}</span>
               </div>
             </div>
             <div style={{fontSize:13,fontWeight:e.read?400:500,marginBottom:3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.subject}</div>
             <div style={{fontSize:12,color:'#666',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.preview}</div>
-            {showProject && <div style={{marginTop:5}}>{tag(e.project,e.project)}</div>}
+            {showProject&&<div style={{marginTop:5}}>{tag(e.project,e.project)}</div>}
           </div>
         </div>
       </div>
@@ -303,7 +314,7 @@ export default function App() {
   }
 
   function EmailDetail({email}) {
-    const c = PC[email.project]||PC.Other
+    const c=PC[email.project]||PC.Other
     return (
       <div style={{background:'#fff',borderTop:`4px solid ${c.a}`,border:`1px solid ${c.b}`}}>
         <div style={{padding:'16px 20px',borderBottom:'1px solid #e8e8e4'}}>
@@ -314,39 +325,25 @@ export default function App() {
             <span style={{fontSize:12,color:'#888'}}>{email.date}</span>
             {priTag(email.priority)}
             {tag(email.project,email.project)}
-            {email.needsReply && <span style={{fontSize:11,background:'#FCEBEB',color:'#791F1F',border:'1px solid #F09595',padding:'2px 8px',borderRadius:2}}>Needs reply</span>}
-            {email.waitingReply && <span style={{fontSize:11,background:'#FAEEDA',color:'#633806',border:'1px solid #EF9F27',padding:'2px 8px',borderRadius:2}}>Waiting on response</span>}
+            {email.needsReply&&<span style={{fontSize:11,background:'#FCEBEB',color:'#791F1F',border:'1px solid #F09595',padding:'2px 8px',borderRadius:2}}>Needs reply</span>}
+            {email.waitingReply&&<span style={{fontSize:11,background:'#FAEEDA',color:'#633806',border:'1px solid #EF9F27',padding:'2px 8px',borderRadius:2}}>Waiting on response</span>}
           </div>
-          {email.agentReason && (
-            <div style={{padding:'8px 12px',background:email.agentLowConf?'#FAEEDA':'#EEEDFE',border:`1px solid ${email.agentLowConf?'#EF9F27':'#AFA9EC'}`,borderRadius:2,fontSize:12,color:email.agentLowConf?'#633806':'#3C3489'}}>
-              {email.agentLowConf?'⚠ Uncertain: ':'Agent: '}{email.agentReason}
-            </div>
-          )}
+          {email.agentReason&&<div style={{padding:'8px 12px',background:email.agentLowConf?'#FAEEDA':'#EEEDFE',border:`1px solid ${email.agentLowConf?'#EF9F27':'#AFA9EC'}`,borderRadius:2,fontSize:12,color:email.agentLowConf?'#633806':'#3C3489'}}>{email.agentLowConf?'⚠ Uncertain: ':'Agent: '}{email.agentReason}</div>}
         </div>
         <div style={{padding:'16px 20px',borderBottom:'1px solid #e8e8e4'}}>
           <div style={{fontSize:13,lineHeight:1.8,color:'#444',whiteSpace:'pre-wrap'}}>{email.body||email.preview}</div>
-          {email.files?.length>0 && (
-            <div style={{marginTop:12,display:'flex',gap:8,flexWrap:'wrap'}}>
-              {email.files.map(f=><span key={f} style={{fontSize:12,background:'#f4f4f0',border:'1px solid #e0e0dc',padding:'4px 12px',borderRadius:2}}>📎 {f}</span>)}
-            </div>
-          )}
+          {email.files?.length>0&&<div style={{marginTop:12,display:'flex',gap:8,flexWrap:'wrap'}}>{email.files.map(f=><span key={f} style={{fontSize:12,background:'#f4f4f0',border:'1px solid #e0e0dc',padding:'4px 12px',borderRadius:2}}>📎 {f}</span>)}</div>}
         </div>
         <div style={{padding:'12px 20px',borderBottom:'1px solid #e8e8e4',background:'#fafaf8'}}>
           <div style={{fontSize:11,color:'#888',marginBottom:8,textTransform:'uppercase',letterSpacing:0.5}}>Move to project</div>
           <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-            {[...projects,'Other'].map(p => {
-              const pc=PC[p]||PC.Other; const active=email.project===p
-              return <button key={p} onClick={()=>moveEmail(email.id,p)} style={{fontSize:11,padding:'4px 12px',borderRadius:2,background:active?pc.a:'#fff',color:active?'#fff':'#555',border:active?`1px solid ${pc.a}`:'1px solid #d0d0cc',fontWeight:active?600:400}}>{p}</button>
-            })}
+            {[...projects,'Other'].map(p=>{const pc=PC[p]||PC.Other;const active=email.project===p;return <button key={p} onClick={()=>moveEmail(email.id,p)} style={{fontSize:11,padding:'4px 12px',borderRadius:2,background:active?pc.a:'#fff',color:active?'#fff':'#555',border:active?`1px solid ${pc.a}`:'1px solid #d0d0cc',fontWeight:active?600:400}}>{p}</button>})}
           </div>
         </div>
         <div style={{padding:'12px 20px',background:'#fafaf8'}}>
           <div style={{fontSize:11,color:'#888',marginBottom:8,textTransform:'uppercase',letterSpacing:0.5}}>Priority</div>
           <div style={{display:'flex',gap:6,marginBottom:12}}>
-            {['high','normal','low'].map(p => {
-              const pc=PRI[p]; const active=email.priority===p
-              return <button key={p} onClick={()=>changePriority(email.id,p)} style={{fontSize:11,padding:'4px 12px',borderRadius:2,background:active?pc.t:'#fff',color:active?'#fff':'#555',border:active?`1px solid ${pc.t}`:'1px solid #d0d0cc',fontWeight:active?600:400}}>{pc.l}</button>
-            })}
+            {['high','normal','low'].map(p=>{const pc=PRI[p];const active=email.priority===p;return <button key={p} onClick={()=>changePriority(email.id,p)} style={{fontSize:11,padding:'4px 12px',borderRadius:2,background:active?pc.t:'#fff',color:active?'#fff':'#555',border:active?`1px solid ${pc.t}`:'1px solid #d0d0cc',fontWeight:active?600:400}}>{pc.l}</button>})}
           </div>
           <div style={{display:'flex',gap:8}}>
             <button onClick={()=>{setChat(c=>[...c,{role:'user',text:`Draft a reply to: "${email.subject}" from ${email.from}`}]);setPage('agent')}} style={{fontSize:12,padding:'7px 16px',background:c.a,color:'#fff',border:'none',borderRadius:2,fontWeight:500}}>Draft reply via agent</button>
@@ -357,7 +354,7 @@ export default function App() {
     )
   }
 
-  const sideNav = [
+  const sideNav=[
     {id:'dashboard',label:'Dashboard'},
     {id:'inbox',label:'Inbox',count:unread},
     {id:'tasks',label:'Tasks',count:tasks.filter(t=>!t.done).length},
@@ -369,69 +366,56 @@ export default function App() {
 
   return (
     <div style={{display:'flex',height:'100vh',overflow:'hidden'}}>
-
-      {/* Sidebar */}
       <div style={{width:220,background:'#16213e',display:'flex',flexDirection:'column',flexShrink:0}}>
         <div style={{padding:'20px 18px 14px',borderBottom:'1px solid rgba(255,255,255,0.07)'}}>
           <div style={{fontSize:18,fontWeight:700,color:'#fff',letterSpacing:-0.5}}>WorkHub</div>
           <div style={{fontSize:11,color:'rgba(255,255,255,0.35)',marginTop:2}}>kim.diamond@truecitrus.com</div>
           <div style={{marginTop:12,display:'flex',gap:5,flexWrap:'wrap'}}>
             {[{k:'gmail',l:'Gmail',fn:syncGmail},{k:'calendar',l:'Cal',fn:syncCalendar},{k:'drive',l:'Drive',fn:syncDrive}].map(s=>(
-              <button key={s.k} onClick={s.fn} disabled={loading[s.k]} style={{fontSize:10,padding:'3px 9px',borderRadius:2,background:'rgba(255,255,255,0.06)',color:'rgba(255,255,255,0.55)',border:'1px solid rgba(255,255,255,0.12)'}}>
-                {loading[s.k]?'...':s.l}
+              <button key={s.k} onClick={s.fn} disabled={loading[s.k]} style={{fontSize:10,padding:'3px 9px',borderRadius:2,background:authed&&s.k==='gmail'?'rgba(15,110,86,0.4)':'rgba(255,255,255,0.06)',color:authed&&s.k==='gmail'?'#5DCAA5':'rgba(255,255,255,0.55)',border:`1px solid ${authed&&s.k==='gmail'?'#5DCAA5':'rgba(255,255,255,0.12)'}`}}>
+                {loading[s.k]?'...':(authed&&s.k==='gmail'?'✓ ':'')+s.l}
               </button>
             ))}
           </div>
         </div>
         <div style={{flex:1,overflowY:'auto',padding:'10px 0'}}>
-          {sideNav.map((item,i) => {
-            if (!item) return <div key={i} style={{height:1,background:'rgba(255,255,255,0.07)',margin:'8px 0'}}/>
-            const active = page===item.id
+          {sideNav.map((item,i)=>{
+            if(!item) return <div key={i} style={{height:1,background:'rgba(255,255,255,0.07)',margin:'8px 0'}}/>
+            const active=page===item.id
             return (
-              <div key={item.id} onClick={()=>setPage(item.id)}
-                style={{padding:'9px 18px',cursor:'pointer',display:'flex',alignItems:'center',gap:10,background:active?'rgba(255,255,255,0.09)':'transparent',borderLeft:`3px solid ${active?(item.color||'#7F77DD'):'transparent'}`}}>
-                {item.color && <div style={{width:8,height:8,background:item.color,borderRadius:1,flexShrink:0}}/>}
+              <div key={item.id} onClick={()=>setPage(item.id)} style={{padding:'9px 18px',cursor:'pointer',display:'flex',alignItems:'center',gap:10,background:active?'rgba(255,255,255,0.09)':'transparent',borderLeft:`3px solid ${active?(item.color||'#7F77DD'):'transparent'}`}}>
+                {item.color&&<div style={{width:8,height:8,background:item.color,borderRadius:1,flexShrink:0}}/>}
                 <span style={{fontSize:13,color:active?'#fff':'rgba(255,255,255,0.55)',fontWeight:active?500:400,flex:1}}>{item.label}</span>
-                {item.count>0 && <span style={{fontSize:10,background:'#E24B4A',color:'#fff',padding:'1px 6px',borderRadius:2,fontWeight:700}}>{item.count}</span>}
+                {item.count>0&&<span style={{fontSize:10,background:'#E24B4A',color:'#fff',padding:'1px 6px',borderRadius:2,fontWeight:700}}>{item.count}</span>}
               </div>
             )
           })}
           <div style={{padding:'8px 18px',marginTop:4}}>
-            <input value={newProj} onChange={e=>setNewProj(e.target.value)}
-              onKeyDown={e=>{if(e.key==='Enter'&&newProj.trim()){setProjects(p=>[...p,newProj]);setProjData(d=>({...d,[newProj]:{status:'Active',notes:''}}));setNewProj('')}}}
-              placeholder="+ new project..." style={{width:'100%',fontSize:12,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',color:'rgba(255,255,255,0.4)',padding:'5px 8px'}}/>
+            <input value={newProj} onChange={e=>setNewProj(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&newProj.trim()){setProjects(p=>[...p,newProj]);setProjData(d=>({...d,[newProj]:{status:'Active',notes:''}}));setNewProj('')}}} placeholder="+ new project..." style={{width:'100%',fontSize:12,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',color:'rgba(255,255,255,0.4)',padding:'5px 8px'}}/>
           </div>
         </div>
         <div style={{padding:'12px 18px',borderTop:'1px solid rgba(255,255,255,0.07)',display:'flex',flexDirection:'column',gap:8}}>
-          {lowConf.length>0 && <div style={{background:'#FAEEDA',color:'#633806',border:'1px solid #EF9F27',padding:'6px 10px',borderRadius:2,fontSize:11,fontWeight:500}}>⚠ {lowConf.length} email{lowConf.length>1?'s':''} need review</div>}
-          <button onClick={runTriage} disabled={loading.triage} style={{padding:'8px',background:loading.triage?'rgba(255,255,255,0.08)':'#534AB7',color:'#fff',border:'none',borderRadius:2,fontWeight:600,fontSize:12}}>
-            {loading.triage?'Running...':'Run AI triage'}
-          </button>
-          {!authed && (
-            <button onClick={()=>window.location.href='/api/auth/login'} style={{padding:'7px',background:'#0F6E56',color:'#fff',border:'none',borderRadius:2,fontSize:12,fontWeight:600}}>
-              Connect Gmail →
-            </button>
-          )}
+          {lowConf.length>0&&<div style={{background:'#FAEEDA',color:'#633806',border:'1px solid #EF9F27',padding:'6px 10px',borderRadius:2,fontSize:11,fontWeight:500}}>⚠ {lowConf.length} email{lowConf.length>1?'s':''} need review</div>}
+          <button onClick={runTriage} disabled={loading.triage} style={{padding:'8px',background:loading.triage?'rgba(255,255,255,0.08)':'#534AB7',color:'#fff',border:'none',borderRadius:2,fontWeight:600,fontSize:12}}>{loading.triage?'Running...':'Run AI triage'}</button>
+          {!authed&&<button onClick={()=>window.location.href='/api/auth/login'} style={{padding:'7px',background:'#0F6E56',color:'#fff',border:'none',borderRadius:2,fontSize:12,fontWeight:600}}>Connect Gmail →</button>}
+          {authed&&<button onClick={()=>{localStorage.clear();setAuthed(false);setAccessToken(null);setEmails([]);showToast('Disconnected','info')}} style={{padding:'5px',background:'rgba(255,255,255,0.04)',color:'rgba(255,255,255,0.3)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:2,fontSize:11}}>Disconnect</button>}
         </div>
       </div>
 
-      {/* Main */}
       <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',minWidth:0}}>
 
-        {page==='dashboard' && (
+        {page==='dashboard'&&(
           <div style={{flex:1,overflowY:'auto',padding:24,display:'flex',flexDirection:'column',gap:22}}>
             <div style={{fontSize:20,fontWeight:600}}>Good morning, Kim</div>
-
-            {!authed && (
+            {!authed&&(
               <div style={{background:'#EEEDFE',border:'1px solid #AFA9EC',padding:'18px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:16}}>
                 <div>
                   <div style={{fontWeight:600,fontSize:14,color:'#26215C',marginBottom:4}}>Connect your Gmail to get started</div>
-                  <div style={{fontSize:12,color:'#534AB7'}}>Sign in with kim.diamond@truecitrus.com to load real emails, calendar, and Drive files.</div>
+                  <div style={{fontSize:12,color:'#534AB7'}}>Sign in with kim.diamond@truecitrus.com to load your real emails.</div>
                 </div>
                 <button onClick={()=>window.location.href='/api/auth/login'} style={{padding:'10px 22px',background:'#534AB7',color:'#fff',border:'none',borderRadius:2,fontWeight:600,fontSize:13,flexShrink:0}}>Connect Gmail →</button>
               </div>
             )}
-
             <div style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:14}}>
               {[{l:'Unread emails',v:unread,bg:'#FCEBEB',tc:'#791F1F',bc:'#F09595'},{l:'Needs reply',v:needsReplyCount,bg:'#E6F1FB',tc:'#0C447C',bc:'#85B7EB'},{l:'Waiting on',v:waitingCount,bg:'#FAEEDA',tc:'#633806',bc:'#EF9F27'},{l:'High priority',v:highCount,bg:'#FCEBEB',tc:'#791F1F',bc:'#F09595'}].map(c=>(
                 <div key={c.l} style={{background:c.bg,border:`1px solid ${c.bc}`,padding:'18px 20px'}}>
@@ -440,8 +424,7 @@ export default function App() {
                 </div>
               ))}
             </div>
-
-            {lowConf.length>0 && (
+            {lowConf.length>0&&(
               <div style={{background:'#FAEEDA',border:'1px solid #EF9F27',padding:'14px 20px'}}>
                 <div style={{fontSize:13,fontWeight:600,color:'#412402',marginBottom:10}}>⚠ {lowConf.length} email{lowConf.length>1?'s':''} flagged for review</div>
                 {lowConf.map(e=>(
@@ -454,16 +437,15 @@ export default function App() {
                 ))}
               </div>
             )}
-
             <div style={{display:'grid',gridTemplateColumns:'minmax(0,1.4fr) minmax(0,1fr)',gap:20}}>
               <div style={{background:'#fff',border:'1px solid #e8e8e4'}}>
-                <SectionHeader title="Recent emails" count={emails.length} accent="#534AB7" onExpand={()=>setPage('inbox')}/>
-                {emails.length===0 && <div style={{padding:24,color:'#888',fontSize:13}}>Connect Gmail to load emails.</div>}
+                <SH title="Recent emails" count={emails.length} accent="#534AB7" onExpand={()=>setPage('inbox')}/>
+                {emails.length===0&&<div style={{padding:24,color:'#888',fontSize:13}}>{authed?'Syncing emails...':'Connect Gmail to load emails.'}</div>}
                 {emails.slice(0,5).map(e=><EmailRow key={e.id} e={e}/>)}
                 {selectedEmail&&emails.slice(0,5).find(e=>e.id===selectedEmail.id)&&<EmailDetail email={selectedEmail}/>}
               </div>
               <div style={{background:'#fff',border:'1px solid #e8e8e4'}}>
-                <SectionHeader title="Tasks" count={tasks.filter(t=>!t.done).length} accent="#0F6E56" onExpand={()=>setPage('tasks')}/>
+                <SH title="Tasks" count={tasks.filter(t=>!t.done).length} accent="#0F6E56" onExpand={()=>setPage('tasks')}/>
                 <div style={{padding:'10px 20px',borderBottom:'1px solid #e8e8e4',display:'flex',gap:8}}>
                   <input value={newTask} onChange={e=>setNewTask(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&newTask.trim()){setTasks(t=>[...t,{id:Date.now(),text:newTask,project:'',done:false}]);setNewTask('')}}} placeholder="Add task..." style={{flex:1,fontSize:13}}/>
                   <button onClick={()=>{if(newTask.trim()){setTasks(t=>[...t,{id:Date.now(),text:newTask,project:'',done:false}]);setNewTask('')}}} style={{background:'#0F6E56',color:'#fff',border:'none',borderRadius:2,padding:'5px 14px'}}>Add</button>
@@ -479,13 +461,12 @@ export default function App() {
                 ))}
               </div>
             </div>
-
             <div style={{display:'grid',gridTemplateColumns:'minmax(0,1fr) minmax(0,1.6fr)',gap:20}}>
               <div style={{background:'#fff',border:'1px solid #e8e8e4'}}>
-                <SectionHeader title="Meetings" count={meetings.filter(m=>m.date>=today).length} accent="#185FA5" onExpand={()=>setPage('calendar')}/>
+                <SH title="Meetings" count={meetings.filter(m=>m.date>=today).length} accent="#185FA5" onExpand={()=>setPage('calendar')}/>
                 {meetings.length===0&&<div style={{padding:24,color:'#888',fontSize:13}}>Sync Calendar to load meetings.</div>}
                 {meetings.filter(m=>m.date>=today).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,5).map(m=>{
-                  const c=PC[m.project]||PC.Other; const d=new Date(m.date+'T12:00')
+                  const c=PC[m.project]||PC.Other;const d=new Date(m.date+'T12:00')
                   return (
                     <div key={m.id} style={{padding:'12px 20px',borderBottom:'1px solid #e8e8e4',display:'flex',gap:14,alignItems:'center'}}>
                       <div style={{width:44,textAlign:'center',background:c.bg,border:`1px solid ${c.b}`,padding:'6px 0',flexShrink:0}}>
@@ -501,7 +482,7 @@ export default function App() {
                 })}
               </div>
               <div style={{background:'#fff',border:'1px solid #e8e8e4'}}>
-                <SectionHeader title="Projects" count={projects.length} accent="#993556" onExpand={()=>setPage('projects')}/>
+                <SH title="Projects" count={projects.length} accent="#993556"/>
                 <div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))'}}>
                   {projects.map(p=>{
                     const c=PC[p]||PC.Other
@@ -522,7 +503,7 @@ export default function App() {
           </div>
         )}
 
-        {page==='inbox' && (
+        {page==='inbox'&&(
           <div style={{flex:1,display:'grid',gridTemplateColumns:'minmax(0,1fr) minmax(0,1.2fr)',overflow:'hidden'}}>
             <div style={{borderRight:'1px solid #e8e8e4',display:'flex',flexDirection:'column',overflow:'hidden'}}>
               <div style={{padding:'14px 20px',borderBottom:'2px solid #534AB7',display:'flex',alignItems:'center',gap:10,flexShrink:0,background:'#fff'}}>
@@ -539,10 +520,10 @@ export default function App() {
           </div>
         )}
 
-        {page==='tasks' && (
+        {page==='tasks'&&(
           <div style={{flex:1,overflowY:'auto',padding:24}}>
             <div style={{background:'#fff',border:'1px solid #e8e8e4'}}>
-              <SectionHeader title="All tasks" count={tasks.filter(t=>!t.done).length} accent="#0F6E56"/>
+              <SH title="All tasks" count={tasks.filter(t=>!t.done).length} accent="#0F6E56"/>
               <div style={{padding:'10px 20px',borderBottom:'1px solid #e8e8e4',display:'flex',gap:8}}>
                 <input value={newTask} onChange={e=>setNewTask(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&newTask.trim()){setTasks(t=>[...t,{id:Date.now(),text:newTask,project:'',done:false}]);setNewTask('')}}} placeholder="Add task..." style={{flex:1,fontSize:13}}/>
                 <button onClick={()=>{if(newTask.trim()){setTasks(t=>[...t,{id:Date.now(),text:newTask,project:'',done:false}]);setNewTask('')}}} style={{background:'#0F6E56',color:'#fff',border:'none',borderRadius:2,padding:'6px 16px'}}>Add</button>
@@ -560,7 +541,7 @@ export default function App() {
           </div>
         )}
 
-        {page==='calendar' && (
+        {page==='calendar'&&(
           <div style={{flex:1,overflowY:'auto',padding:24}}>
             <div style={{background:'#fff',border:'1px solid #e8e8e4'}}>
               <div style={{padding:'14px 20px',borderBottom:'2px solid #185FA5',display:'flex',alignItems:'center',gap:10}}>
@@ -570,7 +551,7 @@ export default function App() {
               </div>
               {meetings.length===0&&<div style={{padding:24,color:'#888',fontSize:13}}>Sync Calendar to load your meetings.</div>}
               {meetings.sort((a,b)=>a.date.localeCompare(b.date)).map(m=>{
-                const c=PC[m.project]||PC.Other; const d=new Date(m.date+'T12:00')
+                const c=PC[m.project]||PC.Other;const d=new Date(m.date+'T12:00')
                 return (
                   <div key={m.id} style={{padding:'16px 20px',borderBottom:'1px solid #e8e8e4',display:'flex',gap:16,alignItems:'center',borderLeft:`4px solid ${c.a}`}}>
                     <div style={{width:56,textAlign:'center',background:c.bg,border:`1px solid ${c.b}`,padding:'8px 0',flexShrink:0}}>
@@ -588,38 +569,26 @@ export default function App() {
           </div>
         )}
 
-        {page==='agent' && (
+        {page==='agent'&&(
           <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
             <div style={{padding:'14px 20px',borderBottom:'2px solid #534AB7',background:'#fff',display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
               <div style={{width:3,height:18,background:'#534AB7'}}/>
               <span style={{fontSize:13,fontWeight:600,textTransform:'uppercase',letterSpacing:0.3}}>Agent</span>
               <span style={{fontSize:12,color:'#888'}}>Ask me anything about your emails, tasks, or projects</span>
-              <button onClick={runTriage} disabled={loading.triage} style={{marginLeft:'auto',fontSize:12,padding:'6px 14px',background:'#534AB7',color:'#fff',border:'none',borderRadius:2}}>
-                {loading.triage?'Running...':'Run triage'}
-              </button>
+              <button onClick={runTriage} disabled={loading.triage} style={{marginLeft:'auto',fontSize:12,padding:'6px 14px',background:'#534AB7',color:'#fff',border:'none',borderRadius:2}}>{loading.triage?'Running...':'Run triage'}</button>
             </div>
             <div style={{flex:1,overflowY:'auto',padding:20,display:'flex',flexDirection:'column',gap:12,background:'#f4f4f0'}}>
               {chat.map((m,i)=>(
                 <div key={i} style={{display:'flex',gap:12,alignItems:'flex-start',flexDirection:m.role==='agent'?'row':'row-reverse'}}>
                   {m.role==='agent'&&<div style={{width:32,height:32,background:'#534AB7',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,borderRadius:2,flexShrink:0}}>AI</div>}
-                  <div style={{maxWidth:'75%',background:m.role==='agent'?'#fff':'#534AB7',color:m.role==='agent'?'#1a1a1a':'#fff',border:m.role==='agent'?'1px solid #e8e8e4':'none',padding:'12px 16px',borderRadius:2,fontSize:13,lineHeight:1.7,whiteSpace:'pre-wrap'}}>
-                    {m.text}
-                  </div>
+                  <div style={{maxWidth:'75%',background:m.role==='agent'?'#fff':'#534AB7',color:m.role==='agent'?'#1a1a1a':'#fff',border:m.role==='agent'?'1px solid #e8e8e4':'none',padding:'12px 16px',borderRadius:2,fontSize:13,lineHeight:1.7,whiteSpace:'pre-wrap'}}>{m.text}</div>
                 </div>
               ))}
-              {loading.agent&&(
-                <div style={{display:'flex',gap:12}}>
-                  <div style={{width:32,height:32,background:'#534AB7',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,borderRadius:2}}>AI</div>
-                  <div style={{background:'#fff',border:'1px solid #e8e8e4',padding:'12px 16px',borderRadius:2,fontSize:13,color:'#888'}}>Thinking...</div>
-                </div>
-              )}
+              {loading.agent&&<div style={{display:'flex',gap:12}}><div style={{width:32,height:32,background:'#534AB7',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,borderRadius:2}}>AI</div><div style={{background:'#fff',border:'1px solid #e8e8e4',padding:'12px 16px',borderRadius:2,fontSize:13,color:'#888'}}>Thinking...</div></div>}
               <div ref={chatEnd}/>
             </div>
             <div style={{padding:'14px 20px',borderTop:'1px solid #e8e8e4',background:'#fff',display:'flex',gap:10,flexShrink:0}}>
-              <textarea value={chatInput} onChange={e=>setChatInput(e.target.value)}
-                onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendAgentMessage()}}}
-                placeholder='Try: "Move the IRI email to high priority" or "Draft a reply to the most recent email"'
-                rows={2} style={{flex:1,fontSize:13,resize:'none',lineHeight:1.5,padding:'8px 12px'}}/>
+              <textarea value={chatInput} onChange={e=>setChatInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendAgentMessage()}}} placeholder='Try: "Move the IRI email to high priority" or "Draft a reply to the most recent email"' rows={2} style={{flex:1,fontSize:13,resize:'none',lineHeight:1.5,padding:'8px 12px'}}/>
               <button onClick={sendAgentMessage} disabled={loading.agent} style={{padding:'0 20px',background:'#534AB7',color:'#fff',border:'none',borderRadius:2,fontSize:13,fontWeight:500,alignSelf:'stretch'}}>Send</button>
             </div>
             <div style={{padding:'8px 20px',background:'#f4f4f0',borderTop:'1px solid #e8e8e4',display:'flex',gap:6,flexWrap:'wrap'}}>
@@ -630,7 +599,7 @@ export default function App() {
           </div>
         )}
 
-        {cp && (
+        {cp&&(
           <div style={{flex:1,overflowY:'auto',padding:24,display:'flex',flexDirection:'column',gap:20}}>
             <div style={{display:'flex',alignItems:'center',gap:14}}>
               <div style={{width:12,height:32,background:PC[cp]?.a||'#888'}}/>
@@ -647,7 +616,7 @@ export default function App() {
             </div>
             <div style={{display:'grid',gridTemplateColumns:'minmax(0,1.3fr) minmax(0,1fr)',gap:20}}>
               <div style={{background:'#fff',border:'1px solid #e8e8e4'}}>
-                <SectionHeader title="Emails" count={emails.filter(e=>e.project===cp).length} accent={PC[cp]?.a||'#888'}/>
+                <SH title="Emails" count={emails.filter(e=>e.project===cp).length} accent={PC[cp]?.a||'#888'}/>
                 {emails.filter(e=>e.project===cp).length===0&&<div style={{padding:24,color:'#888',fontSize:13}}>No emails for this project yet.</div>}
                 {emails.filter(e=>e.project===cp).map(e=><EmailRow key={e.id} e={e} showProject={false}/>)}
                 {selectedEmail&&emails.filter(e=>e.project===cp).find(e=>e.id===selectedEmail.id)&&<EmailDetail email={selectedEmail}/>}
@@ -655,9 +624,7 @@ export default function App() {
               <div style={{display:'flex',flexDirection:'column',gap:16}}>
                 <div style={{background:'#fff',border:'1px solid #e8e8e4'}}>
                   <div style={{padding:'14px 20px',borderBottom:'1px solid #e8e8e4',fontSize:12,fontWeight:600,textTransform:'uppercase',letterSpacing:0.3}}>Notes</div>
-                  <div style={{padding:'14px 20px'}}>
-                    <textarea rows={5} value={projData[cp]?.notes||''} onChange={e=>setProjData(d=>({...d,[cp]:{...d[cp],notes:e.target.value}}))} placeholder="Notes, links, memos..." style={{width:'100%',fontSize:13,resize:'vertical',lineHeight:1.6,padding:10}}/>
-                  </div>
+                  <div style={{padding:'14px 20px'}}><textarea rows={5} value={projData[cp]?.notes||''} onChange={e=>setProjData(d=>({...d,[cp]:{...d[cp],notes:e.target.value}}))} placeholder="Notes, links, memos..." style={{width:'100%',fontSize:13,resize:'vertical',lineHeight:1.6,padding:10}}/></div>
                 </div>
                 <div style={{background:'#fff',border:'1px solid #e8e8e4'}}>
                   <div style={{padding:'14px 20px',borderBottom:'1px solid #e8e8e4',fontSize:12,fontWeight:600,textTransform:'uppercase',letterSpacing:0.3}}>Tasks</div>
@@ -676,9 +643,7 @@ export default function App() {
                   <div style={{background:'#fff',border:'1px solid #e8e8e4'}}>
                     <div style={{padding:'14px 20px',borderBottom:'1px solid #e8e8e4',fontSize:12,fontWeight:600,textTransform:'uppercase',letterSpacing:0.3}}>Drive files</div>
                     <div style={{padding:'14px 20px',display:'flex',gap:8,flexWrap:'wrap'}}>
-                      {projData[cp].driveFiles.map((f,i)=>(
-                        <a key={i} href={f.link} target="_blank" rel="noreferrer" style={{fontSize:12,background:'#f4f4f0',border:'1px solid #e0e0dc',padding:'4px 12px',borderRadius:2,color:'#185FA5',textDecoration:'none'}}>📄 {f.name}</a>
-                      ))}
+                      {projData[cp].driveFiles.map((f,i)=><a key={i} href={f.link} target="_blank" rel="noreferrer" style={{fontSize:12,background:'#f4f4f0',border:'1px solid #e0e0dc',padding:'4px 12px',borderRadius:2,color:'#185FA5',textDecoration:'none'}}>📄 {f.name}</a>)}
                     </div>
                   </div>
                 )}
@@ -688,7 +653,7 @@ export default function App() {
         )}
       </div>
 
-      {compose && (
+      {compose&&(
         <div style={{position:'fixed',bottom:20,right:20,width:440,background:'#fff',border:'1px solid #d0d0cc',borderRadius:2,zIndex:200,boxShadow:'0 4px 20px rgba(0,0,0,0.1)'}}>
           <div style={{padding:'12px 16px',background:'#16213e',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
             <span style={{fontWeight:600,fontSize:13,color:'#fff'}}>Send email</span>
@@ -706,7 +671,7 @@ export default function App() {
         </div>
       )}
 
-      {toast && (
+      {toast&&(
         <div style={{position:'fixed',bottom:20,left:'50%',transform:'translateX(-50%)',background:toast.type==='success'?'#0F6E56':toast.type==='error'?'#A32D2D':'#534AB7',color:'#fff',padding:'9px 22px',borderRadius:2,fontSize:12,fontWeight:600,zIndex:400,whiteSpace:'nowrap',boxShadow:'0 2px 12px rgba(0,0,0,0.2)'}}>
           {toast.msg}
         </div>

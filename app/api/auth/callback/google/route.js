@@ -27,38 +27,50 @@ export async function GET(request) {
     const tokens = await tokenRes.json()
 
     if (tokens.error) {
-      console.error('Token exchange error:', JSON.stringify(tokens))
+      console.error('Token error:', JSON.stringify(tokens))
       return NextResponse.redirect(new URL(`/?error=${tokens.error_description || tokens.error}`, request.url))
     }
 
-    // Store tokens in sessionStorage via HTML page then redirect
+    const expiry = Date.now() + 3500000
     const html = `<!DOCTYPE html>
 <html>
-<head><title>WorkHub - Connecting...</title></head>
-<body style="font-family:sans-serif;padding:40px;text-align:center;">
-<h2>Connecting to Gmail...</h2>
-<p>Please wait while we set up your account.</p>
+<head><title>WorkHub - Connecting...</title>
+<style>body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#f4f4f0;} .box{background:#fff;padding:40px;border-radius:4px;text-align:center;border:1px solid #e8e8e4;} h2{color:#534AB7;margin-bottom:8px;} p{color:#666;}</style>
+</head>
+<body>
+<div class="box">
+<h2>✓ Gmail Connected</h2>
+<p>Loading WorkHub...</p>
+</div>
 <script>
-try {
-  sessionStorage.setItem('wh_access_token', '${tokens.access_token}');
-  ${tokens.refresh_token ? `sessionStorage.setItem('wh_refresh_token', '${tokens.refresh_token}');` : ''}
-  sessionStorage.setItem('wh_authed', 'true');
-  sessionStorage.setItem('wh_token_expiry', Date.now() + 3500000);
-} catch(e) {
-  console.error('Storage error:', e);
-}
-setTimeout(() => { window.location.href = '/?connected=true'; }, 500);
+(function() {
+  try {
+    localStorage.setItem('wh_access_token', '${tokens.access_token}');
+    localStorage.setItem('wh_token_expiry', '${expiry}');
+    localStorage.setItem('wh_authed', 'true');
+    ${tokens.refresh_token ? `localStorage.setItem('wh_refresh_token', '${tokens.refresh_token}');` : ''}
+    console.log('Token stored successfully');
+  } catch(e) {
+    console.error('Storage failed:', e);
+  }
+  setTimeout(function() {
+    window.location.replace('/?connected=true');
+  }, 800);
+})();
 </script>
 </body>
 </html>`
 
     return new Response(html, {
       status: 200,
-      headers: { 'Content-Type': 'text/html' },
+      headers: {
+        'Content-Type': 'text/html',
+        'Cache-Control': 'no-store',
+      },
     })
 
   } catch (e) {
-    console.error('Callback exception:', e.message)
+    console.error('Callback error:', e)
     return NextResponse.redirect(new URL(`/?error=server_error`, request.url))
   }
 }
