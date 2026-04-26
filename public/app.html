@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>WorkHub — True Citrus</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;background:#f4f4f0;color:#1a1a1a}
+input,textarea,select,button{font-family:inherit;font-size:13px}
+input,textarea,select{border:1px solid #d0d0cc;border-radius:2px;padding:6px 10px;outline:none;background:#fff;color:#1a1a1a}
+input:focus,textarea:focus,select:focus{border-color:#534AB7}
+button{cursor:pointer;border:1px solid #d0d0cc;border-radius:2px;padding:6px 14px;background:#fff;color:#1a1a1a}
+button:hover{background:#f4f4f0}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:#d0d0cc}
+#app{display:flex;height:100vh;overflow:hidden}
+#sidebar{width:220px;background:#16213e;display:flex;flex-direction:column;flex-shrink:0}
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.sb-header{padding:20px 18px 14px;border-bottom:1px solid rgba(255,255,255,0.07)}
+.sb-title{font-size:18px;font-weight:700;color:#fff;letter-spacing:-0.5px}
+.sb-sub{font-size:11px;color:rgba(255,255,255,0.35);margin-top:2px}
+.sb-btns{margin-top:12px;display:flex;gap:5px;flex-wrap:wrap}
+.sb-btn{font-size:10px;padding:3px 9px;border-radius:2px;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.55);border:1px solid rgba(255,255,255,0.12);cursor:pointer}
+.sb-btn.connected{background:rgba(15,110,86,0.4);color:#5DCAA5;border-color:#5DCAA5}
+.sb-nav{flex:1;overflow-y:auto;padding:10px 0}
+.nav-item{padding:9px 18px;cursor:pointer;display:flex;align-items:center;gap:10px;border-left:3px solid transparent}
+.nav-item:hover{background:rgba(255,255,255,0.05)}
+.nav-item.active{background:rgba(255,255,255,0.09)}
+.nav-label{font-size:13px;color:rgba(255,255,255,0.55);font-weight:400;flex:1}
+.nav-item.active .nav-label{color:#fff;font-weight:500}
+.nav-dot{width:8px;height:8px;border-radius:1px;flex-shrink:0}
+.nav-badge{font-size:10px;background:#E24B4A;color:#fff;padding:1px 6px;border-radius:2px;font-weight:700}
+.sb-footer{padding:12px 18px;border-top:1px solid rgba(255,255,255,0.07);display:flex;flex-direction:column;gap:8px}
+.btn-primary{padding:8px;background:#534AB7;color:#fff;border:none;border-radius:2px;font-weight:600;font-size:12px;width:100%}
+.btn-connect{padding:7px;background:#0F6E56;color:#fff;border:none;border-radius:2px;font-size:12px;font-weight:600;width:100%}
+.btn-disconnect{padding:5px;background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.3);border:1px solid rgba(255,255,255,0.08);border-radius:2px;font-size:11px;width:100%}
+.page{flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:22px}
+.page-title{font-size:20px;font-weight:600}
+.connect-banner{background:#EEEDFE;border:1px solid #AFA9EC;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.stat{padding:18px 20px}
+.stat-label{font-size:12px;opacity:0.7;margin-bottom:6px;font-weight:500}
+.stat-value{font-size:34px;font-weight:700;line-height:1}
+.grid-2{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:20px}
+.grid-2b{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:20px}
+.card{background:#fff;border:1px solid #e8e8e4}
+.card-header{display:flex;align-items:center;gap:10px;padding:14px 20px 10px;border-bottom-width:2px;border-bottom-style:solid}
+.card-accent{width:3px;height:16px;flex-shrink:0}
+.card-title{font-size:12px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase}
+.card-count{font-size:12px;color:#888}
+.expand-btn{margin-left:auto;font-size:11px;padding:3px 12px;color:#666;border:1px solid #d0d0cc;border-radius:2px}
+.email-row{padding:12px 20px;border-bottom:1px solid #e8e8e4;cursor:pointer;border-left:4px solid transparent}
+.email-row:hover{background:#f9f9f7}
+.email-row.selected{border-left-color:var(--accent)}
+.email-avatar{width:36px;height:36px;border-radius:2px;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.email-from{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.email-subject{font-size:13px;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.email-preview{font-size:12px;color:#666;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:2px;font-weight:500;white-space:nowrap}
+.pri-tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:2px;font-weight:500}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);color:#fff;padding:9px 22px;border-radius:2px;font-size:12px;font-weight:600;z-index:400;white-space:nowrap;box-shadow:0 2px 12px rgba(0,0,0,0.2);transition:opacity 0.3s}
+.inbox-layout{flex:1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);overflow:hidden}
+.inbox-list{border-right:1px solid #e8e8e4;display:flex;flex-direction:column;overflow:hidden}
+.inbox-header{padding:14px 20px;display:flex;align-items:center;gap:10px;flex-shrink:0;background:#fff}
+.inbox-body{flex:1;overflow-y:auto}
+.inbox-detail{overflow-y:auto;background:#f4f4f0}
+.chat-layout{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.chat-header{padding:14px 20px;background:#fff;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.chat-messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px;background:#f4f4f0}
+.chat-msg{display:flex;gap:12px;align-items:flex-start}
+.chat-msg.user{flex-direction:row-reverse}
+.chat-bubble{max-width:75%;padding:12px 16px;border-radius:2px;font-size:13px;line-height:1.7;white-space:pre-wrap}
+.chat-bubble.agent{background:#fff;border:1px solid #e8e8e4;color:#1a1a1a}
+.chat-bubble.user{background:#534AB7;color:#fff}
+.chat-ai-avatar{width:32px;height:32px;background:#534AB7;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border-radius:2px;flex-shrink:0}
+.chat-input-area{padding:14px 20px;border-top:1px solid #e8e8e4;background:#fff;display:flex;gap:10px;flex-shrink:0}
+.chat-suggestions{padding:8px 20px;background:#f4f4f0;border-top:1px solid #e8e8e4;display:flex;gap:6px;flex-wrap:wrap}
+.sugg-btn{font-size:11px;padding:3px 10px;border-radius:2px;color:#555}
+.divider{height:1px;background:rgba(255,255,255,0.07);margin:8px 0}
+.review-banner{background:#FAEEDA;border:1px solid #EF9F27;padding:14px 20px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="sidebar">
+    <div class="sb-header">
+      <div class="sb-title">WorkHub</div>
+      <div class="sb-sub">kim.diamond@truecitrus.com</div>
+      <div class="sb-btns">
+        <button class="sb-btn" id="btn-gmail" onclick="syncGmail()">Gmail</button>
+        <button class="sb-btn" id="btn-cal" onclick="syncCalendar()">Cal</button>
+        <button class="sb-btn" id="btn-drive" onclick="syncDrive()">Drive</button>
+      </div>
+    </div>
+    <div class="sb-nav" id="sidebar-nav"></div>
+    <div class="sb-footer">
+      <div id="low-conf-alert" style="display:none"></div>
+      <button class="btn-primary" onclick="runTriage()">Run AI triage</button>
+      <button class="btn-connect" id="connect-btn" onclick="connectGmail()">Connect Gmail →</button>
+    </div>
+  </div>
+  <div id="main"></div>
+</div>
+<div id="toast" class="toast" style="display:none"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────
+const PROJECTS = ['Syndigo','Samples','Coupons','Presentations','Jotform','Chatbot','IRI','HH Panel'];
+const PC = {
+  Syndigo:{a:'#534AB7',bg:'#EEEDFE',t:'#26215C',b:'#AFA9EC'},
+  Samples:{a:'#0F6E56',bg:'#E1F5EE',t:'#04342C',b:'#5DCAA5'},
+  Coupons:{a:'#993C1D',bg:'#FAECE7',t:'#4A1B0C',b:'#F0997B'},
+  Presentations:{a:'#185FA5',bg:'#E6F1FB',t:'#042C53',b:'#85B7EB'},
+  Jotform:{a:'#854F0B',bg:'#FAEEDA',t:'#412402',b:'#EF9F27'},
+  Chatbot:{a:'#993556',bg:'#FBEAF0',t:'#4B1528',b:'#ED93B1'},
+  IRI:{a:'#3B6D11',bg:'#EAF3DE',t:'#173404',b:'#97C459'},
+  'HH Panel':{a:'#185FA5',bg:'#E6F1FB',t:'#042C53',b:'#85B7EB'},
+  Other:{a:'#5F5E5A',bg:'#F1EFE8',t:'#2C2C2A',b:'#B4B2A9'},
+};
+const PRI = {
+  high:{bg:'#FCEBEB',t:'#791F1F',b:'#F09595',l:'High'},
+  normal:{bg:'#E6F1FB',t:'#0C447C',b:'#85B7EB',l:'Normal'},
+  low:{bg:'#EAF3DE',t:'#27500A',b:'#97C459',l:'Low'},
+};
+
+let state = {
+  page: 'dashboard',
+  authed: false,
+  accessToken: null,
+  emails: [],
+  tasks: [],
+  meetings: [],
+  projects: [...PROJECTS],
+  projData: Object.fromEntries(PROJECTS.map(p=>[p,{status:'Active',notes:''}])),
+  selectedEmail: null,
+  chat: [{role:'agent',text:"Hi Kim! I'm your WorkHub agent. Click 'Connect Gmail' to get started."}],
+  loading: {}
+};
+
+// ── Storage ────────────────────────────────────────────────────────────
+function lsGet(k){try{return localStorage.getItem(k)}catch{return null}}
+function lsSet(k,v){try{localStorage.setItem(k,v)}catch{}}
+function lsDel(k){try{localStorage.removeItem(k)}catch{}}
+
+function getToken(){
+  const t=lsGet('wh_token'), e=parseInt(lsGet('wh_expiry')||'0');
+  if(t && e>Date.now()) return t;
+  if(t){lsDel('wh_token');lsDel('wh_expiry');}
+  return null;
+}
+
+// ── Init ───────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', ()=>{
+  const params = new URLSearchParams(location.search);
+  if(params.get('connected')==='true'){
+    history.replaceState({},'','/app.html');
+    const t = getToken();
+    if(t){
+      state.accessToken = t;
+      state.authed = true;
+      showToast('Gmail connected!','success');
+      syncGmailWithToken(t);
+    } else {
+      showToast('Auth failed — please try again','error');
+    }
+  } else if(params.get('error')){
+    showToast('Auth error: '+params.get('error'),'error');
+    history.replaceState({},'','/app.html');
+  } else {
+    const t = getToken();
+    if(t){ state.accessToken=t; state.authed=true; syncGmailWithToken(t); }
+  }
+  render();
+});
+
+// ── Helpers ────────────────────────────────────────────────────────────
+function classify(text){
+  const t=(text||'').toLowerCase();
+  if(t.includes('syndigo')) return 'Syndigo';
+  if(t.includes('sample')) return 'Samples';
+  if(t.includes('coupon')) return 'Coupons';
+  if(t.includes('present')||t.includes('deck')||t.includes('slide')) return 'Presentations';
+  if(t.includes('jotform')||t.includes('form submission')) return 'Jotform';
+  if(t.includes('chatbot')||t.includes('widget')||t.includes('bot')) return 'Chatbot';
+  if(t.includes('iri')||t.includes('nielsen')) return 'IRI';
+  if(t.includes('hh panel')||t.includes('household')) return 'HH Panel';
+  return 'Other';
+}
+
+function showToast(msg,type='info'){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.style.background=type==='success'?'#0F6E56':type==='error'?'#A32D2D':'#534AB7';
+  el.style.display='block';el.style.opacity='1';
+  setTimeout(()=>{el.style.opacity='0';setTimeout(()=>el.style.display='none',300)},3500);
+}
+
+function navigate(page){ state.page=page; state.selectedEmail=null; render(); }
+
+function tagHTML(label,color){
+  const c=PC[color]||PC.Other;
+  return `<span class="tag" style="background:${c.bg};color:${c.t};border:1px solid ${c.b}">${label}</span>`;
+}
+function priTagHTML(p){
+  const c=PRI[p]||PRI.normal;
+  return `<span class="pri-tag" style="background:${c.bg};color:${c.t};border:1px solid ${c.b}">${c.l}</span>`;
+}
+
+// ── Auth ───────────────────────────────────────────────────────────────
+function connectGmail(){ location.href='/api/auth/login'; }
+
+function disconnect(){
+  lsDel('wh_token');lsDel('wh_expiry');
+  state.authed=false;state.accessToken=null;state.emails=[];
+  showToast('Disconnected','info'); render();
+}
+
+// ── API calls ──────────────────────────────────────────────────────────
+async function apiGet(path){
+  const t=state.accessToken||getToken();
+  return fetch(path,{headers:t?{Authorization:`Bearer ${t}`}:{}});
+}
+async function apiPost(path,body){
+  const t=state.accessToken||getToken();
+  const h={'Content-Type':'application/json'};
+  if(t) h.Authorization=`Bearer ${t}`;
+  return fetch(path,{method:'POST',headers:h,body:JSON.stringify(body)});
+}
+
+async function syncGmail(){
+  const t=getToken()||state.accessToken;
+  if(!t){connectGmail();return;}
+  syncGmailWithToken(t);
+}
+
+async function syncGmailWithToken(token){
+  state.loading.gmail=true; renderSidebar();
+  try{
+    const res=await fetch('/api/gmail',{headers:{Authorization:`Bearer ${token}`}});
+    if(res.status===401){
+      lsDel('wh_token');lsDel('wh_expiry');
+      state.authed=false;state.accessToken=null;
+      showToast('Session expired — please reconnect','error');
+      render(); return;
+    }
+    const data=await res.json();
+    if(data.emails){
+      state.emails=data.emails.map(e=>({...e,project:classify(e.subject+' '+e.preview+' '+e.from)}));
+      state.authed=true;
+      showToast(data.emails.length+' emails loaded','success');
+      render();
+    }
+  }catch(e){showToast('Gmail sync failed: '+e.message,'error');}
+  state.loading.gmail=false; renderSidebar();
+}
+
+async function syncCalendar(){
+  const t=getToken()||state.accessToken;
+  if(!t){connectGmail();return;}
+  state.loading.cal=true; renderSidebar();
+  try{
+    const res=await fetch('/api/calendar',{headers:{Authorization:`Bearer ${t}`}});
+    const data=await res.json();
+    if(data.events){
+      state.meetings=data.events.map(e=>({...e,project:classify(e.title+' '+(e.description||''))}));
+      showToast(data.events.length+' events loaded','success');
+      if(state.page==='calendar') render();
+    }
+  }catch(e){showToast('Calendar sync failed','error');}
+  state.loading.cal=false; renderSidebar();
+}
+
+async function syncDrive(){
+  const t=getToken()||state.accessToken;
+  if(!t){connectGmail();return;}
+  state.loading.drive=true; renderSidebar();
+  try{
+    const res=await fetch('/api/drive',{headers:{Authorization:`Bearer ${t}`}});
+    const data=await res.json();
+    if(data.files){
+      const byProj={};
+      data.files.forEach(f=>{
+        const p=classify(f.name);
+        if(!byProj[p]) byProj[p]=[];
+        byProj[p].push({name:f.name,link:f.webViewLink});
+      });
+      Object.entries(byProj).forEach(([p,files])=>{
+        if(state.projData[p]) state.projData[p].driveFiles=files;
+      });
+      showToast(data.files.length+' Drive files linked','success');
+    }
+  }catch(e){showToast('Drive sync failed','error');}
+  state.loading.drive=false; renderSidebar();
+}
+
+async function runTriage(){
+  showToast('Triaging emails...','info');
+  try{
+    const res=await apiPost('/api/triage',{emails:state.emails,projects:state.projects});
+    const data=await res.json();
+    if(data.results){
+      data.results.forEach(r=>{
+        const e=state.emails.find(x=>String(x.id)===String(r.id));
+        if(e){
+          e.project=r.project||e.project;e.priority=r.priority;
+          e.needsReply=r.needsReply;e.waitingReply=r.waitingReply;
+          e.read=true;e.agentReason=r.reason;e.agentLowConf=r.confidence==='low';
+          if(r.hasTask&&r.taskText) state.tasks.push({id:Date.now()+Math.random(),text:r.taskText,project:r.project,done:false});
+        }
+      });
+      state.chat.push({role:'agent',text:`Triage complete. ${data.results.length} emails processed. ${data.results.filter(r=>r.confidence==='low').length} flagged for review.`});
+      showToast('Triage complete','success');
+      render();
+    }
+  }catch(e){showToast('Triage failed','error');}
+}
+
+async function sendAgentMessage(){
+  const input=document.getElementById('chat-input');
+  const msg=input?.value?.trim();
+  if(!msg) return;
+  input.value='';
+  state.chat.push({role:'user',text:msg});
+  renderChat();
+  try{
+    const res=await apiPost('/api/agent',{message:msg,emails:state.emails,tasks:state.tasks,projects:state.projects,meetings:state.meetings});
+    const data=await res.json();
+    if(data.reply) state.chat.push({role:'agent',text:data.reply});
+    if(data.actions){
+      if(data.actions.emailUpdates?.length){
+        data.actions.emailUpdates.forEach(u=>{
+          const e=state.emails.find(x=>String(x.id)===String(u.id));
+          if(e) Object.assign(e,u,{manualOverride:true,agentLowConf:false});
+        });
+      }
+      if(data.actions.newTasks?.length){
+        data.actions.newTasks.forEach((t,i)=>state.tasks.push({id:Date.now()+i,done:false,...t}));
+      }
+    }
+    renderChat();
+    if(data.actions?.emailUpdates?.length) render();
+  }catch(e){state.chat.push({role:'agent',text:'Error: '+e.message});renderChat();}
+}
+
+function moveEmail(id,project){
+  const e=state.emails.find(x=>x.id===id);
+  if(e){e.project=project;e.manualOverride=true;e.agentLowConf=false;}
+  if(state.selectedEmail?.id===id) state.selectedEmail.project=project;
+  render();
+}
+
+function changePriority(id,priority){
+  const e=state.emails.find(x=>x.id===id);
+  if(e){e.priority=priority;e.manualOverride=true;}
+  if(state.selectedEmail?.id===id) state.selectedEmail.priority=priority;
+  render();
+}
+
+function selectEmail(id){
+  const e=state.emails.find(x=>x.id===id);
+  state.selectedEmail = state.selectedEmail?.id===id ? null : e;
+  render();
+}
+
+function addTask(text,project){
+  if(!text?.trim()) return;
+  state.tasks.push({id:Date.now(),text:text.trim(),project:project||'',done:false});
+  render();
+}
+
+function toggleTask(id){
+  const t=state.tasks.find(x=>x.id===id);
+  if(t) t.done=!t.done;
+  render();
+}
+
+// ── Render helpers ─────────────────────────────────────────────────────
+function emailRowHTML(e, showProject=true){
+  const c=PC[e.project]||PC.Other;
+  const sel=state.selectedEmail?.id===e.id;
+  const initials=(e.from||'').replace(/<.*>/,'').trim().slice(0,2).toUpperCase();
+  return `<div class="email-row${sel?' selected':''}" style="--accent:${c.a};${sel?`background:${c.bg};`:''}border-left-color:${sel?c.a:'transparent'}" onclick="selectEmail('${e.id}')">
+    <div style="display:flex;gap:12px">
+      <div class="email-avatar" style="background:${c.a}">${initials}</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:3px">
+          <span class="email-from" style="font-weight:${e.read?400:600}">${(e.from||'').replace(/<.*>/,'').trim()}</span>
+          <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+            ${e.agentLowConf?'<span class="tag" style="background:#FAEEDA;color:#633806;border:1px solid #EF9F27;font-size:10px">review</span>':''}
+            ${priTagHTML(e.priority)}
+            <span style="font-size:11px;color:#888">${e.date||''}</span>
+          </div>
+        </div>
+        <div class="email-subject" style="font-weight:${e.read?400:500}">${e.subject||''}</div>
+        <div class="email-preview">${e.preview||''}</div>
+        ${showProject?`<div style="margin-top:5px">${tagHTML(e.project,e.project)}</div>`:''}
+      </div>
+    </div>
+  </div>`;
+}
+
+function emailDetailHTML(email){
+  const c=PC[email.project]||PC.Other;
+  const movebtns=state.projects.concat(['Other']).map(p=>{
+    const pc=PC[p]||PC.Other;const active=email.project===p;
+    return `<button onclick="moveEmail('${email.id}','${p}')" style="font-size:11px;padding:4px 12px;border-radius:2px;background:${active?pc.a:'#fff'};color:${active?'#fff':'#555'};border:1px solid ${active?pc.a:'#d0d0cc'};font-weight:${active?600:400}">${p}</button>`;
+  }).join('');
+  const pribtns=['high','normal','low'].map(p=>{
+    const pc=PRI[p];const active=email.priority===p;
+    return `<button onclick="changePriority('${email.id}','${p}')" style="font-size:11px;padding:4px 12px;border-radius:2px;background:${active?pc.t:'#fff'};color:${active?'#fff':'#555'};border:1px solid ${active?pc.t:'#d0d0cc'};font-weight:${active?600:400}">${pc.l}</button>`;
+  }).join('');
+  return `<div style="background:#fff;border-top:4px solid ${c.a};border:1px solid ${c.b}">
+    <div style="padding:16px 20px;border-bottom:1px solid #e8e8e4">
+      <div style="font-size:15px;font-weight:600;margin-bottom:8px;line-height:1.4">${email.subject||''}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+        <span style="font-size:12px;color:#555">${email.from||''}</span>
+        <span style="color:#ccc">·</span>
+        <span style="font-size:12px;color:#888">${email.date||''}</span>
+        ${priTagHTML(email.priority)}
+        ${tagHTML(email.project,email.project)}
+        ${email.needsReply?'<span class="tag" style="background:#FCEBEB;color:#791F1F;border:1px solid #F09595">Needs reply</span>':''}
+        ${email.waitingReply?'<span class="tag" style="background:#FAEEDA;color:#633806;border:1px solid #EF9F27">Waiting on response</span>':''}
+      </div>
+      ${email.agentReason?`<div style="padding:8px 12px;background:${email.agentLowConf?'#FAEEDA':'#EEEDFE'};border:1px solid ${email.agentLowConf?'#EF9F27':'#AFA9EC'};border-radius:2px;font-size:12px;color:${email.agentLowConf?'#633806':'#3C3489'}">${email.agentLowConf?'⚠ Uncertain: ':'Agent: '}${email.agentReason}</div>`:''}
+    </div>
+    <div style="padding:16px 20px;border-bottom:1px solid #e8e8e4">
+      <div style="font-size:13px;line-height:1.8;color:#444;white-space:pre-wrap">${email.body||email.preview||''}</div>
+    </div>
+    <div style="padding:12px 20px;border-bottom:1px solid #e8e8e4;background:#fafaf8">
+      <div style="font-size:11px;color:#888;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">Move to project</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${movebtns}</div>
+    </div>
+    <div style="padding:12px 20px;background:#fafaf8">
+      <div style="font-size:11px;color:#888;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">Priority</div>
+      <div style="display:flex;gap:6px;margin-bottom:12px">${pribtns}</div>
+      <div style="display:flex;gap:8px">
+        <button onclick="askAgentDraft('${email.id}')" style="font-size:12px;padding:7px 16px;background:${c.a};color:#fff;border:none;border-radius:2px;font-weight:500">Draft reply via agent</button>
+        <button onclick="askAgentFix('${email.id}')" style="font-size:12px;padding:7px 16px;border-radius:2px">Ask agent to fix</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function askAgentDraft(emailId){
+  const e=state.emails.find(x=>x.id===emailId);
+  if(e){
+    document.getElementById('chat-input') && (document.getElementById('chat-input').value=`Draft a reply to: "${e.subject}" from ${e.from}`);
+    navigate('agent');
+  }
+}
+function askAgentFix(emailId){
+  const e=state.emails.find(x=>x.id===emailId);
+  if(e){
+    document.getElementById('chat-input') && (document.getElementById('chat-input').value=`The email "${e.subject}" was classified as ${e.project} — is that right?`);
+    navigate('agent');
+  }
+}
+
+// ── Sidebar render ─────────────────────────────────────────────────────
+function renderSidebar(){
+  const unread=state.emails.filter(e=>!e.read).length;
+  const lowConf=state.emails.filter(e=>e.agentLowConf);
+
+  // sync buttons
+  ['gmail','cal','drive'].forEach(k=>{
+    const btn=document.getElementById('btn-'+k);
+    if(btn){
+      btn.className='sb-btn'+(k==='gmail'&&state.authed?' connected':'');
+      btn.textContent=(k==='gmail'&&state.authed?'✓ ':'')+k.charAt(0).toUpperCase()+k.slice(1)+(state.loading[k]?'...':'');
+    }
+  });
+
+  // connect/disconnect
+  const cb=document.getElementById('connect-btn');
+  if(cb){
+    if(state.authed){cb.textContent='Disconnect';cb.onclick=disconnect;cb.className='btn-disconnect';}
+    else{cb.textContent='Connect Gmail →';cb.onclick=connectGmail;cb.className='btn-connect';}
+  }
+
+  // low conf alert
+  const lca=document.getElementById('low-conf-alert');
+  if(lca){
+    if(lowConf.length>0){lca.style.display='block';lca.innerHTML=`<div style="background:#FAEEDA;color:#633806;border:1px solid #EF9F27;padding:6px 10px;border-radius:2px;font-size:11px;font-weight:500">⚠ ${lowConf.length} email${lowConf.length>1?'s':''} need review</div>`;}
+    else lca.style.display='none';
+  }
+
+  const navItems=[
+    {id:'dashboard',label:'Dashboard',count:null},
+    {id:'inbox',label:'Inbox',count:unread||null},
+    {id:'tasks',label:'Tasks',count:state.tasks.filter(t=>!t.done).length||null},
+    {id:'calendar',label:'Calendar',count:null},
+    {id:'agent',label:'Agent chat',count:null},
+    null,
+    ...state.projects.map(p=>({id:'proj:'+p,label:p,color:PC[p]?.a,count:state.emails.filter(e=>e.project===p&&!e.read).length||null}))
+  ];
+
+  const nav=document.getElementById('sidebar-nav');
+  if(!nav) return;
+  nav.innerHTML=navItems.map((item,i)=>{
+    if(!item) return '<div class="divider"></div>';
+    const active=state.page===item.id;
+    return `<div class="nav-item${active?' active':''}" style="border-left-color:${active?(item.color||'#7F77DD'):'transparent'}" onclick="navigate('${item.id}')">
+      ${item.color?`<div class="nav-dot" style="background:${item.color}"></div>`:''}
+      <span class="nav-label">${item.label}</span>
+      ${item.count?`<span class="nav-badge">${item.count}</span>`:''}
+    </div>`;
+  }).join('')+`<div style="padding:8px 18px;margin-top:4px"><input placeholder="+ new project..." style="width:100%;font-size:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.4);padding:5px 8px" onkeydown="if(event.key==='Enter'&&this.value.trim()){state.projects.push(this.value.trim());state.projData[this.value.trim()]={status:'Active',notes:''};this.value='';render();}"/></div>`;
+}
+
+// ── Chat render ────────────────────────────────────────────────────────
+function renderChat(){
+  const msgs=document.getElementById('chat-messages');
+  if(!msgs) return;
+  msgs.innerHTML=state.chat.map(m=>`
+    <div class="chat-msg ${m.role}">
+      ${m.role==='agent'?'<div class="chat-ai-avatar">AI</div>':''}
+      <div class="chat-bubble ${m.role}">${m.text.replace(/\n/g,'<br>')}</div>
+    </div>`).join('');
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+// ── Main render ────────────────────────────────────────────────────────
+function render(){
+  renderSidebar();
+  const main=document.getElementById('main');
+  if(!main) return;
+
+  const today=new Date().toISOString().slice(0,10);
+  const unread=state.emails.filter(e=>!e.read).length;
+  const needsReply=state.emails.filter(e=>e.needsReply).length;
+  const waiting=state.emails.filter(e=>e.waitingReply).length;
+  const highPri=state.emails.filter(e=>e.priority==='high').length;
+  const lowConf=state.emails.filter(e=>e.agentLowConf);
+  const cp=state.page.startsWith('proj:')?state.page.replace('proj:',''):null;
+
+  if(state.page==='dashboard'){
+    main.innerHTML=`<div class="page">
+      <div class="page-title">Good morning, Kim</div>
+      ${!state.authed?`<div class="connect-banner">
+        <div><div style="font-weight:600;font-size:14px;color:#26215C;margin-bottom:4px">Connect your Gmail to get started</div>
+        <div style="font-size:12px;color:#534AB7">Sign in with kim.diamond@truecitrus.com to load your real emails.</div></div>
+        <button onclick="connectGmail()" style="padding:10px 22px;background:#534AB7;color:#fff;border:none;border-radius:2px;font-weight:600;font-size:13px;flex-shrink:0">Connect Gmail →</button>
+      </div>`:''}
+      <div class="stats">
+        ${[{l:'Unread emails',v:unread,bg:'#FCEBEB',tc:'#791F1F',bc:'#F09595'},{l:'Needs reply',v:needsReply,bg:'#E6F1FB',tc:'#0C447C',bc:'#85B7EB'},{l:'Waiting on',v:waiting,bg:'#FAEEDA',tc:'#633806',bc:'#EF9F27'},{l:'High priority',v:highPri,bg:'#FCEBEB',tc:'#791F1F',bc:'#F09595'}].map(c=>`
+        <div class="stat" style="background:${c.bg};border:1px solid ${c.bc}">
+          <div class="stat-label" style="color:${c.tc}">${c.l}</div>
+          <div class="stat-value" style="color:${c.tc}">${c.v}</div>
+        </div>`).join('')}
+      </div>
+      ${lowConf.length?`<div class="review-banner">
+        <div style="font-size:13px;font-weight:600;color:#412402;margin-bottom:10px">⚠ ${lowConf.length} email${lowConf.length>1?'s':''} flagged for review</div>
+        ${lowConf.map(e=>`<div style="display:flex;align-items:center;gap:12px;padding:7px 0;border-top:1px solid rgba(186,117,23,0.2)">
+          <span style="flex:1;font-size:13px;color:#633806;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.subject}</span>
+          ${tagHTML(e.project,e.project)}
+          <button onclick="navigate('inbox');selectEmail('${e.id}')" style="font-size:11px;padding:4px 12px;background:#633806;color:#fff;border:none;border-radius:2px">Review</button>
+          <button onclick="askAgentFix('${e.id}');navigate('agent')" style="font-size:11px;padding:4px 12px;border-radius:2px">Ask agent</button>
+        </div>`).join('')}
+      </div>`:''}
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header" style="border-bottom-color:#534AB7">
+            <div class="card-accent" style="background:#534AB7"></div>
+            <span class="card-title">Recent emails</span>
+            <span class="card-count">(${state.emails.length})</span>
+            <button class="expand-btn" onclick="navigate('inbox')">Expand</button>
+          </div>
+          ${state.emails.length===0?`<div style="padding:24px;color:#888;font-size:13px">${state.authed?'Loading emails...':'Connect Gmail to load emails.'}</div>`:''}
+          ${state.emails.slice(0,5).map(e=>emailRowHTML(e)).join('')}
+          ${state.selectedEmail&&state.emails.slice(0,5).find(e=>e.id===state.selectedEmail.id)?emailDetailHTML(state.selectedEmail):''}
+        </div>
+        <div class="card">
+          <div class="card-header" style="border-bottom-color:#0F6E56">
+            <div class="card-accent" style="background:#0F6E56"></div>
+            <span class="card-title">Tasks</span>
+            <span class="card-count">(${state.tasks.filter(t=>!t.done).length})</span>
+            <button class="expand-btn" onclick="navigate('tasks')">Expand</button>
+          </div>
+          <div style="padding:10px 20px;border-bottom:1px solid #e8e8e4;display:flex;gap:8px">
+            <input id="dash-task-input" placeholder="Add task..." style="flex:1;font-size:13px" onkeydown="if(event.key==='Enter'){addTask(this.value,'');this.value=''}"/>
+            <button onclick="addTask(document.getElementById('dash-task-input').value,'');document.getElementById('dash-task-input').value=''" style="background:#0F6E56;color:#fff;border:none;border-radius:2px;padding:5px 14px">Add</button>
+          </div>
+          ${state.tasks.slice(0,8).map(t=>`<div style="padding:11px 20px;border-bottom:1px solid #e8e8e4;display:flex;gap:12px;align-items:flex-start">
+            <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${JSON.stringify(t.id)})" style="margin-top:2px"/>
+            <div style="flex:1"><div style="font-size:13px;text-decoration:${t.done?'line-through':'none'};color:${t.done?'#aaa':'#1a1a1a'};margin-bottom:4px">${t.text}</div>
+            ${t.project?tagHTML(t.project,t.project):''}</div>
+          </div>`).join('')}
+        </div>
+      </div>
+      <div class="grid-2b">
+        <div class="card">
+          <div class="card-header" style="border-bottom-color:#185FA5">
+            <div class="card-accent" style="background:#185FA5"></div>
+            <span class="card-title">Meetings</span>
+            <button class="expand-btn" onclick="navigate('calendar')">Expand</button>
+          </div>
+          ${state.meetings.length===0?'<div style="padding:24px;color:#888;font-size:13px">Sync Calendar to load meetings.</div>':''}
+          ${state.meetings.filter(m=>m.date>=today).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,5).map(m=>{
+            const c=PC[m.project]||PC.Other;const d=new Date(m.date+'T12:00');
+            return `<div style="padding:12px 20px;border-bottom:1px solid #e8e8e4;display:flex;gap:14px;align-items:center">
+              <div style="width:44px;text-align:center;background:${c.bg};border:1px solid ${c.b};padding:6px 0;flex-shrink:0">
+                <div style="font-size:9px;font-weight:600;color:${c.t};text-transform:uppercase">${d.toLocaleString('en-US',{month:'short'})}</div>
+                <div style="font-size:20px;font-weight:700;color:${c.a};line-height:1.1">${d.getDate()}</div>
+              </div>
+              <div style="flex:1"><div style="font-size:13px;font-weight:500;margin-bottom:4px">${m.title}</div>
+              <div style="display:flex;gap:8px"><span style="font-size:12px;color:#888">${m.time||''}</span>${tagHTML(m.project,m.project)}</div></div>
+            </div>`;
+          }).join('')}
+        </div>
+        <div class="card">
+          <div class="card-header" style="border-bottom-color:#993556">
+            <div class="card-accent" style="background:#993556"></div>
+            <span class="card-title">Projects</span>
+            <span class="card-count">(${state.projects.length})</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr))">
+            ${state.projects.map(p=>{
+              const c=PC[p]||PC.Other;
+              const ne=state.emails.filter(e=>e.project===p&&!e.read).length;
+              const nt=state.tasks.filter(t=>t.project===p&&!t.done).length;
+              return `<div onclick="navigate('proj:${p}')" style="padding:14px 16px;border-bottom:1px solid #e8e8e4;border-right:1px solid #e8e8e4;cursor:pointer;border-top:3px solid ${c.a}">
+                <div style="font-size:13px;font-weight:600;margin-bottom:8px">${p}</div>
+                <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+                  <span class="tag" style="background:${c.bg};color:${c.t};border:1px solid ${c.b}">${state.projData[p]?.status||'Active'}</span>
+                  ${ne?`<span style="font-size:11px;color:#666">${ne} new</span>`:''}
+                  ${nt?`<span style="font-size:11px;color:#666">${nt} tasks</span>`:''}
+                </div>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  else if(state.page==='inbox'){
+    main.className='inbox-layout';
+    main.innerHTML=`
+      <div class="inbox-list">
+        <div class="inbox-header" style="border-bottom:2px solid #534AB7">
+          <div style="width:3px;height:18px;background:#534AB7"></div>
+          <span style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px">Inbox</span>
+          <span style="font-size:12px;color:#888">${unread} unread of ${state.emails.length}</span>
+          <button onclick="syncGmail()" style="margin-left:auto;font-size:11px;padding:3px 10px">↻ Sync</button>
+        </div>
+        <div class="inbox-body">${state.emails.map(e=>emailRowHTML(e)).join('')}</div>
+      </div>
+      <div class="inbox-detail">${state.selectedEmail?emailDetailHTML(state.selectedEmail):'<div style="padding:32px;color:#888;font-size:13px">Select an email to read</div>'}</div>`;
+  }
+
+  else if(state.page==='tasks'){
+    main.className='';
+    main.innerHTML=`<div class="page"><div class="card">
+      <div class="card-header" style="border-bottom-color:#0F6E56">
+        <div class="card-accent" style="background:#0F6E56"></div>
+        <span class="card-title">All tasks</span>
+        <span class="card-count">(${state.tasks.filter(t=>!t.done).length} open)</span>
+      </div>
+      <div style="padding:10px 20px;border-bottom:1px solid #e8e8e4;display:flex;gap:8px">
+        <input id="task-input" placeholder="Add task..." style="flex:1;font-size:13px" onkeydown="if(event.key==='Enter'){addTask(this.value,'');this.value=''}"/>
+        <button onclick="addTask(document.getElementById('task-input').value,'');document.getElementById('task-input').value=''" style="background:#0F6E56;color:#fff;border:none;border-radius:2px;padding:6px 16px">Add</button>
+      </div>
+      ${state.tasks.map(t=>`<div style="padding:14px 20px;border-bottom:1px solid #e8e8e4;display:flex;gap:14px;align-items:flex-start">
+        <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${JSON.stringify(t.id)})" style="margin-top:2px"/>
+        <div style="flex:1">
+          <div style="font-size:14px;text-decoration:${t.done?'line-through':'none'};color:${t.done?'#aaa':'#1a1a1a'};margin-bottom:6px">${t.text}</div>
+          <div style="display:flex;gap:8px">${t.project?tagHTML(t.project,t.project):''}${t.due?`<span style="font-size:12px;color:#888">Due ${t.due}</span>`:''}</div>
+        </div>
+      </div>`).join('')}
+    </div></div>`;
+  }
+
+  else if(state.page==='calendar'){
+    main.className='';
+    main.innerHTML=`<div class="page"><div class="card">
+      <div class="card-header" style="border-bottom-color:#185FA5">
+        <div class="card-accent" style="background:#185FA5"></div>
+        <span class="card-title">Calendar</span>
+        <button onclick="syncCalendar()" style="margin-left:auto;font-size:11px;padding:3px 10px">↻ Sync</button>
+      </div>
+      ${state.meetings.length===0?'<div style="padding:24px;color:#888;font-size:13px">Sync Calendar to load your meetings.</div>':''}
+      ${state.meetings.sort((a,b)=>a.date.localeCompare(b.date)).map(m=>{
+        const c=PC[m.project]||PC.Other;const d=new Date(m.date+'T12:00');
+        return `<div style="padding:16px 20px;border-bottom:1px solid #e8e8e4;display:flex;gap:16px;align-items:center;border-left:4px solid ${c.a}">
+          <div style="width:56px;text-align:center;background:${c.bg};border:1px solid ${c.b};padding:8px 0;flex-shrink:0">
+            <div style="font-size:10px;font-weight:600;color:${c.t};text-transform:uppercase">${d.toLocaleString('en-US',{month:'short'})}</div>
+            <div style="font-size:24px;font-weight:700;color:${c.a};line-height:1.1">${d.getDate()}</div>
+          </div>
+          <div><div style="font-size:15px;font-weight:500;margin-bottom:6px">${m.title}</div>
+          <div style="display:flex;gap:10px"><span style="font-size:13px;color:#888">${m.time||''}</span>${tagHTML(m.project,m.project)}</div></div>
+        </div>`;
+      }).join('')}
+    </div></div>`;
+  }
+
+  else if(state.page==='agent'){
+    main.className='chat-layout';
+    main.innerHTML=`
+      <div class="chat-header" style="border-bottom:2px solid #534AB7">
+        <div style="width:3px;height:18px;background:#534AB7"></div>
+        <span style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px">Agent</span>
+        <span style="font-size:12px;color:#888">Ask me anything about your emails, tasks, or projects</span>
+        <button onclick="runTriage()" style="margin-left:auto;font-size:12px;padding:6px 14px;background:#534AB7;color:#fff;border:none;border-radius:2px">Run triage</button>
+      </div>
+      <div class="chat-messages" id="chat-messages"></div>
+      <div class="chat-input-area">
+        <textarea id="chat-input" rows="2" placeholder='Try: "Move the IRI email to high priority" or "Draft a reply to the most recent email"' style="flex:1;font-size:13px;resize:none;line-height:1.5;padding:8px 12px" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAgentMessage()}"></textarea>
+        <button onclick="sendAgentMessage()" style="padding:0 20px;background:#534AB7;color:#fff;border:none;border-radius:2px;font-size:13px;font-weight:500;align-self:stretch">Send</button>
+      </div>
+      <div class="chat-suggestions">
+        ${['Triage all emails','Show emails needing reply','What tasks are open?','Draft reply to most recent high priority email'].map(s=>`<button class="sugg-btn" onclick="document.getElementById('chat-input').value='${s}'">${s}</button>`).join('')}
+      </div>`;
+    renderChat();
+  }
+
+  else if(cp){
+    main.className='';
+    const c=PC[cp]||PC.Other;
+    const projEmails=state.emails.filter(e=>e.project===cp);
+    main.innerHTML=`<div class="page">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="width:12px;height:32px;background:${c.a}"></div>
+        <div>
+          <div style="font-size:20px;font-weight:700">${cp}</div>
+          <div style="font-size:13px;color:#666;margin-top:2px">${projEmails.length} emails · ${state.tasks.filter(t=>t.project===cp&&!t.done).length} open tasks</div>
+        </div>
+        <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+          <select onchange="state.projData['${cp}'].status=this.value" style="font-size:12px;padding:5px 10px;border-radius:2px">
+            ${['Active','On Hold','Complete'].map(s=>`<option${state.projData[cp]?.status===s?' selected':''}>${s}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:20px">
+        <div class="card">
+          <div class="card-header" style="border-bottom-color:${c.a}">
+            <div class="card-accent" style="background:${c.a}"></div>
+            <span class="card-title">Emails</span>
+            <span class="card-count">(${projEmails.length})</span>
+          </div>
+          ${projEmails.length===0?'<div style="padding:24px;color:#888;font-size:13px">No emails for this project yet.</div>':''}
+          ${projEmails.map(e=>emailRowHTML(e,false)).join('')}
+          ${state.selectedEmail&&projEmails.find(e=>e.id===state.selectedEmail.id)?emailDetailHTML(state.selectedEmail):''}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="card">
+            <div style="padding:14px 20px;border-bottom:1px solid #e8e8e4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px">Notes</div>
+            <div style="padding:14px 20px">
+              <textarea rows="5" style="width:100%;font-size:13px;resize:vertical;line-height:1.6;padding:10px" placeholder="Notes, links, memos..." onchange="state.projData['${cp}'].notes=this.value">${state.projData[cp]?.notes||''}</textarea>
+            </div>
+          </div>
+          <div class="card">
+            <div style="padding:14px 20px;border-bottom:1px solid #e8e8e4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px">Tasks</div>
+            <div style="padding:10px 20px;border-bottom:1px solid #e8e8e4;display:flex;gap:8px">
+              <input id="proj-task-input" placeholder="Add task..." style="flex:1;font-size:13px" onkeydown="if(event.key==='Enter'){addTask(this.value,'${cp}');this.value=''}"/>
+              <button onclick="addTask(document.getElementById('proj-task-input').value,'${cp}');document.getElementById('proj-task-input').value=''" style="background:${c.a};color:#fff;border:none;border-radius:2px;padding:5px 14px">Add</button>
+            </div>
+            ${state.tasks.filter(t=>t.project===cp).map(t=>`<div style="padding:11px 20px;border-bottom:1px solid #e8e8e4;display:flex;gap:12px;align-items:center">
+              <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${JSON.stringify(t.id)})"/>
+              <span style="font-size:13px;flex:1;text-decoration:${t.done?'line-through':'none'};color:${t.done?'#aaa':'#1a1a1a'}">${t.text}</span>
+            </div>`).join('')}
+          </div>
+          ${state.projData[cp]?.driveFiles?.length?`<div class="card">
+            <div style="padding:14px 20px;border-bottom:1px solid #e8e8e4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px">Drive files</div>
+            <div style="padding:14px 20px;display:flex;gap:8px;flex-wrap:wrap">
+              ${state.projData[cp].driveFiles.map(f=>`<a href="${f.link}" target="_blank" style="font-size:12px;background:#f4f4f0;border:1px solid #e0e0dc;padding:4px 12px;border-radius:2px;color:#185FA5;text-decoration:none">📄 ${f.name}</a>`).join('')}
+            </div>
+          </div>`:''}
+        </div>
+      </div>
+    </div>`;
+  }
+}
+</script>
+</body>
+</html>
