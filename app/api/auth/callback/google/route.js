@@ -28,49 +28,52 @@ export async function GET(request) {
 
     if (tokens.error) {
       console.error('Token error:', JSON.stringify(tokens))
-      return NextResponse.redirect(new URL(`/app.html?error=${encodeURIComponent(tokens.error_description||tokens.error)}`, request.url))
+      return NextResponse.redirect(new URL(`/app.html?error=${encodeURIComponent(tokens.error_description || tokens.error)}`, request.url))
     }
 
     const expiry = Date.now() + 3500000
+
+    // Encode tokens as base64 to avoid any character escaping issues
+    const tokenB64 = Buffer.from(tokens.access_token).toString('base64')
+    const refreshB64 = tokens.refresh_token ? Buffer.from(tokens.refresh_token).toString('base64') : ''
 
     const html = `<!DOCTYPE html>
 <html>
 <head><title>WorkHub - Connecting...</title>
 <style>
 body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#f4f4f0;}
-.box{background:#fff;padding:40px 50px;border-radius:4px;text-align:center;border:1px solid #e8e8e4;}
-h2{color:#534AB7;margin-bottom:8px;font-size:20px;}
-p{color:#666;font-size:14px;}
+.box{background:#fff;padding:40px 50px;border:1px solid #e8e8e4;text-align:center;}
+h2{color:#534AB7;margin-bottom:8px;font-size:20px;}p{color:#666;font-size:14px;}
 </style>
 </head>
 <body>
-<div class="box">
-<h2>✓ Gmail Connected</h2>
-<p>Loading WorkHub...</p>
-</div>
+<div class="box"><h2>✓ Gmail Connected</h2><p>Loading WorkHub...</p></div>
 <script>
 (function() {
-  var token = ${JSON.stringify(tokens.access_token)};
-  var expiry = ${expiry};
-  var refresh = ${JSON.stringify(tokens.refresh_token || null)};
-  
   try {
+    // Decode base64 encoded tokens
+    var tokenB64 = '${tokenB64}';
+    var refreshB64 = '${refreshB64}';
+    var expiry = '${expiry}';
+    
+    var token = atob(tokenB64);
+    
     localStorage.setItem('wh_token', token);
-    localStorage.setItem('wh_expiry', String(expiry));
-    if (refresh) localStorage.setItem('wh_refresh', refresh);
+    localStorage.setItem('wh_expiry', expiry);
+    if (refreshB64) {
+      localStorage.setItem('wh_refresh', atob(refreshB64));
+    }
     localStorage.setItem('wh_authed', 'true');
-    console.log('Token saved successfully, length:', token.length);
-  } catch(e) {
-    console.error('localStorage error:', e);
+    
+    var saved = localStorage.getItem('wh_token');
+    console.log('Token saved:', saved ? 'YES length=' + saved.length : 'FAILED');
+  } catch(err) {
+    console.error('Storage error:', err);
   }
   
-  // Verify it was saved
-  var check = localStorage.getItem('wh_token');
-  console.log('Verification - token saved:', check ? 'YES (length '+check.length+')' : 'NO - FAILED');
-  
   setTimeout(function() {
-    window.location.href = '/app.html?connected=true&ts=' + Date.now();
-  }, 1000);
+    window.location.replace('/app.html?connected=true');
+  }, 800);
 })();
 </script>
 </body>
@@ -80,7 +83,7 @@ p{color:#666;font-size:14px;}
       status: 200,
       headers: {
         'Content-Type': 'text/html',
-        'Cache-Control': 'no-store, no-cache',
+        'Cache-Control': 'no-store',
       },
     })
 
