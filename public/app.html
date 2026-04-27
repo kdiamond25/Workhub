@@ -12,8 +12,7 @@ input,textarea,select{border:1px solid #d0d0cc;border-radius:2px;padding:6px 10p
 input:focus,textarea:focus,select:focus{border-color:#534AB7}
 button{cursor:pointer;border:1px solid #d0d0cc;border-radius:2px;padding:6px 14px;background:#fff;color:#1a1a1a}
 button:hover{background:#f4f4f0}
-::-webkit-scrollbar{width:4px}
-::-webkit-scrollbar-thumb{background:#d0d0cc}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#d0d0cc}
 #app{display:flex;height:100vh;overflow:hidden}
 #sidebar{width:220px;background:#16213e;display:flex;flex-direction:column;flex-shrink:0}
 #main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
@@ -39,8 +38,7 @@ button:hover{background:#f4f4f0}
 .page-title{font-size:20px;font-weight:600}
 .connect-banner{background:#EEEDFE;border:1px solid #AFA9EC;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px}
 .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
-.stat{padding:18px 20px}
-.stat-label{font-size:12px;opacity:0.7;margin-bottom:6px;font-weight:500}
+.stat{padding:18px 20px}.stat-label{font-size:12px;opacity:0.7;margin-bottom:6px;font-weight:500}
 .stat-value{font-size:34px;font-weight:700;line-height:1}
 .grid-2{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:20px}
 .grid-2b{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:20px}
@@ -52,29 +50,12 @@ button:hover{background:#f4f4f0}
 .expand-btn{margin-left:auto;font-size:11px;padding:3px 12px;color:#666;border:1px solid #d0d0cc;border-radius:2px}
 .email-row{padding:12px 20px;border-bottom:1px solid #e8e8e4;cursor:pointer;border-left:4px solid transparent}
 .email-row:hover{background:#f9f9f7}
-.email-avatar{width:36px;height:36px;border-radius:2px;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
 .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:2px;font-weight:500;white-space:nowrap}
 .pri-tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:2px;font-weight:500}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);color:#fff;padding:9px 22px;border-radius:2px;font-size:12px;font-weight:600;z-index:400;white-space:nowrap;box-shadow:0 2px 12px rgba(0,0,0,0.2)}
-.inbox-layout{flex:1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);overflow:hidden}
-.inbox-list{border-right:1px solid #e8e8e4;display:flex;flex-direction:column;overflow:hidden}
-.inbox-header{padding:14px 20px;display:flex;align-items:center;gap:10px;flex-shrink:0;background:#fff}
-.inbox-body{flex:1;overflow-y:auto}
-.inbox-detail{overflow-y:auto;background:#f4f4f0}
-.chat-layout{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.chat-header{padding:14px 20px;background:#fff;display:flex;align-items:center;gap:10px;flex-shrink:0}
-.chat-messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px;background:#f4f4f0}
-.chat-msg{display:flex;gap:12px;align-items:flex-start}
-.chat-msg.user{flex-direction:row-reverse}
-.chat-bubble{max-width:75%;padding:12px 16px;border-radius:2px;font-size:13px;line-height:1.7;white-space:pre-wrap}
-.chat-bubble.agent{background:#fff;border:1px solid #e8e8e4;color:#1a1a1a}
-.chat-bubble.user{background:#534AB7;color:#fff}
-.chat-ai-avatar{width:32px;height:32px;background:#534AB7;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border-radius:2px;flex-shrink:0}
-.chat-input-area{padding:14px 20px;border-top:1px solid #e8e8e4;background:#fff;display:flex;gap:10px;flex-shrink:0}
-.chat-suggestions{padding:8px 20px;background:#f4f4f0;border-top:1px solid #e8e8e4;display:flex;gap:6px;flex-wrap:wrap}
-.sugg-btn{font-size:11px;padding:3px 10px;border-radius:2px;color:#555}
 .divider{height:1px;background:rgba(255,255,255,0.07);margin:8px 0}
 .review-banner{background:#FAEEDA;border:1px solid #EF9F27;padding:14px 20px}
+.sugg-btn{font-size:11px;padding:3px 10px;border-radius:2px;color:#555}
 </style>
 </head>
 <body>
@@ -113,35 +94,30 @@ const PC={
   'HH Panel':{a:'#185FA5',bg:'#E6F1FB',t:'#042C53',b:'#85B7EB'},
   Other:{a:'#5F5E5A',bg:'#F1EFE8',t:'#2C2C2A',b:'#B4B2A9'},
 };
-const PRI={
-  high:{bg:'#FCEBEB',t:'#791F1F',b:'#F09595',l:'High'},
-  normal:{bg:'#E6F1FB',t:'#0C447C',b:'#85B7EB',l:'Normal'},
-  low:{bg:'#EAF3DE',t:'#27500A',b:'#97C459',l:'Low'},
-};
+const PRI={high:{bg:'#FCEBEB',t:'#791F1F',b:'#F09595',l:'High'},normal:{bg:'#E6F1FB',t:'#0C447C',b:'#85B7EB',l:'Normal'},low:{bg:'#EAF3DE',t:'#27500A',b:'#97C459',l:'Low'}};
 
-let state={
-  page:'dashboard',authed:false,accessToken:null,
-  emails:[],tasks:[],meetings:[],
-  projects:[...PROJECTS],
-  projData:Object.fromEntries(PROJECTS.map(p=>[p,{status:'Active',notes:''}])),
-  selectedEmail:null,
-  chat:[{role:'agent',text:"Hi Kim! I'm your WorkHub agent. Click 'Connect Gmail' to get started."}],
-};
+let state={page:'dashboard',authed:false,accessToken:null,emails:[],tasks:[],meetings:[],projects:[...PROJECTS],projData:Object.fromEntries(PROJECTS.map(p=>[p,{status:'Active',notes:''}])),selectedEmail:null,chat:[{role:'agent',text:"Hi Kim! I'm your WorkHub agent. Click 'Connect Gmail' to get started."}]};
 
 function lsGet(k){try{return localStorage.getItem(k)}catch{return null}}
 function lsSet(k,v){try{localStorage.setItem(k,v)}catch{}}
 function lsDel(k){try{localStorage.removeItem(k)}catch{}}
 
 function getToken(){
+  // First check in-memory
+  if(state.accessToken) return state.accessToken;
+  // Then localStorage
   const t=lsGet('wh_token'),e=parseInt(lsGet('wh_expiry')||'0');
   if(t&&e>Date.now()) return t;
   if(t){lsDel('wh_token');lsDel('wh_expiry');}
   return null;
 }
 
+function b64decode(str){
+  return atob(str.replace(/-/g,'+').replace(/_/g,'/'));
+}
+
 function showToast(msg,type='info'){
-  const el=document.getElementById('toast');
-  if(!el) return;
+  const el=document.getElementById('toast');if(!el)return;
   el.textContent=msg;
   el.style.background=type==='success'?'#0F6E56':type==='error'?'#A32D2D':'#534AB7';
   el.style.display='block';
@@ -149,76 +125,57 @@ function showToast(msg,type='info'){
 }
 
 function connectGmail(){location.href='/api/auth/login';}
-
 function disconnect(){
-  lsDel('wh_token');lsDel('wh_expiry');lsDel('wh_refresh');lsDel('wh_authed');
+  lsDel('wh_token');lsDel('wh_expiry');lsDel('wh_refresh');
   state.authed=false;state.accessToken=null;state.emails=[];
   showToast('Disconnected','info');render();
 }
 
 function classify(text){
   const t=(text||'').toLowerCase();
-  if(t.includes('syndigo')) return 'Syndigo';
-  if(t.includes('sample')) return 'Samples';
-  if(t.includes('coupon')) return 'Coupons';
-  if(t.includes('present')||t.includes('deck')||t.includes('slide')) return 'Presentations';
-  if(t.includes('jotform')||t.includes('form submission')) return 'Jotform';
-  if(t.includes('chatbot')||t.includes('widget')||t.includes('bot')) return 'Chatbot';
-  if(t.includes('iri')||t.includes('nielsen')) return 'IRI';
-  if(t.includes('hh panel')||t.includes('household')) return 'HH Panel';
-  return 'Other';
+  if(t.includes('syndigo'))return'Syndigo';
+  if(t.includes('sample'))return'Samples';
+  if(t.includes('coupon'))return'Coupons';
+  if(t.includes('present')||t.includes('deck')||t.includes('slide'))return'Presentations';
+  if(t.includes('jotform')||t.includes('form submission'))return'Jotform';
+  if(t.includes('chatbot')||t.includes('widget')||t.includes('bot'))return'Chatbot';
+  if(t.includes('iri')||t.includes('nielsen'))return'IRI';
+  if(t.includes('hh panel')||t.includes('household'))return'HH Panel';
+  return'Other';
 }
 
 function navigate(page){state.page=page;state.selectedEmail=null;render();}
 
-function tagHTML(label,color){
-  const c=PC[color]||PC.Other;
-  return `<span class="tag" style="background:${c.bg};color:${c.t};border:1px solid ${c.b}">${label}</span>`;
-}
-function priTagHTML(p){
-  const c=PRI[p]||PRI.normal;
-  return `<span class="pri-tag" style="background:${c.bg};color:${c.t};border:1px solid ${c.b}">${c.l}</span>`;
-}
+function tagHTML(label,color){const c=PC[color]||PC.Other;return`<span class="tag" style="background:${c.bg};color:${c.t};border:1px solid ${c.b}">${label}</span>`;}
+function priTagHTML(p){const c=PRI[p]||PRI.normal;return`<span class="pri-tag" style="background:${c.bg};color:${c.t};border:1px solid ${c.b}">${c.l}</span>`;}
 
 async function syncGmailWithToken(token){
-  document.getElementById('btn-gmail').textContent='Syncing...';
+  const gb=document.getElementById('btn-gmail');if(gb)gb.textContent='Syncing...';
   try{
     const res=await fetch('/api/gmail',{headers:{Authorization:'Bearer '+token}});
     if(res.status===401){
       lsDel('wh_token');lsDel('wh_expiry');
       state.authed=false;state.accessToken=null;
-      showToast('Session expired — please reconnect','error');
-      render();return;
+      showToast('Session expired — please reconnect','error');render();return;
     }
     const data=await res.json();
     if(data.emails){
       state.emails=data.emails.map(e=>({...e,project:classify(e.subject+' '+e.preview+' '+e.from)}));
       state.authed=true;state.accessToken=token;
-      showToast(data.emails.length+' emails loaded','success');
-      render();
-    } else if(data.error){
-      showToast('Gmail error: '+data.error,'error');
-    }
+      showToast(data.emails.length+' emails loaded','success');render();
+    }else if(data.error){showToast('Gmail error: '+data.error,'error');}
   }catch(e){showToast('Gmail sync failed','error');}
   renderSidebar();
 }
 
-async function syncGmail(){
-  const t=getToken();
-  if(!t){connectGmail();return;}
-  syncGmailWithToken(t);
-}
+async function syncGmail(){const t=getToken();if(!t){connectGmail();return;}syncGmailWithToken(t);}
 
 async function syncCalendar(){
   const t=getToken();if(!t){connectGmail();return;}
   try{
     const res=await fetch('/api/calendar',{headers:{Authorization:'Bearer '+t}});
     const data=await res.json();
-    if(data.events){
-      state.meetings=data.events.map(e=>({...e,project:classify(e.title+' '+(e.description||''))}));
-      showToast(data.events.length+' events loaded','success');
-      if(state.page==='calendar') render(); else renderSidebar();
-    }
+    if(data.events){state.meetings=data.events.map(e=>({...e,project:classify(e.title+' '+(e.description||''))}));showToast(data.events.length+' events loaded','success');if(state.page==='calendar')render();else renderSidebar();}
   }catch(e){showToast('Calendar sync failed','error');}
 }
 
@@ -237,21 +194,17 @@ async function syncDrive(){
 }
 
 async function runTriage(){
-  showToast('Triaging emails...','info');
+  showToast('Triaging...','info');
   try{
     const res=await fetch('/api/triage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({emails:state.emails,projects:state.projects})});
     const data=await res.json();
     if(data.results){
       data.results.forEach(r=>{
         const e=state.emails.find(x=>String(x.id)===String(r.id));
-        if(e){
-          e.project=r.project||e.project;e.priority=r.priority;
-          e.needsReply=r.needsReply;e.waitingReply=r.waitingReply;
-          e.read=true;e.agentReason=r.reason;e.agentLowConf=r.confidence==='low';
-          if(r.hasTask&&r.taskText)state.tasks.push({id:Date.now()+Math.random(),text:r.taskText,project:r.project,done:false});
-        }
+        if(e){e.project=r.project||e.project;e.priority=r.priority;e.needsReply=r.needsReply;e.waitingReply=r.waitingReply;e.read=true;e.agentReason=r.reason;e.agentLowConf=r.confidence==='low';
+          if(r.hasTask&&r.taskText)state.tasks.push({id:Date.now()+Math.random(),text:r.taskText,project:r.project,done:false});}
       });
-      state.chat.push({role:'agent',text:'Triage complete. '+data.results.length+' emails processed. '+data.results.filter(r=>r.confidence==='low').length+' flagged for review.'});
+      state.chat.push({role:'agent',text:'Triage complete. '+data.results.length+' emails processed.'});
       showToast('Triage complete','success');render();
     }
   }catch(e){showToast('Triage failed','error');}
@@ -260,8 +213,7 @@ async function runTriage(){
 async function sendAgentMessage(){
   const input=document.getElementById('chat-input');
   const msg=input?.value?.trim();if(!msg)return;
-  input.value='';
-  state.chat.push({role:'user',text:msg});renderChat();
+  input.value='';state.chat.push({role:'user',text:msg});renderChat();
   try{
     const res=await fetch('/api/agent',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg,emails:state.emails,tasks:state.tasks,projects:state.projects,meetings:state.meetings})});
     const data=await res.json();
@@ -274,52 +226,20 @@ async function sendAgentMessage(){
   }catch(e){state.chat.push({role:'agent',text:'Error: '+e.message});renderChat();}
 }
 
-function moveEmail(id,project){
-  const e=state.emails.find(x=>x.id===id);
-  if(e){e.project=project;e.manualOverride=true;e.agentLowConf=false;}
-  if(state.selectedEmail?.id===id)state.selectedEmail=e;
-  render();
-}
-
-function changePriority(id,priority){
-  const e=state.emails.find(x=>x.id===id);
-  if(e){e.priority=priority;e.manualOverride=true;}
-  if(state.selectedEmail?.id===id)state.selectedEmail=e;
-  render();
-}
-
-function selectEmail(id){
-  const e=state.emails.find(x=>x.id===id);
-  state.selectedEmail=state.selectedEmail?.id===id?null:e;
-  render();
-}
-
-function addTask(text,project){
-  if(!text?.trim())return;
-  state.tasks.push({id:Date.now(),text:text.trim(),project:project||'',done:false});
-  render();
-}
-
-function toggleTask(id){
-  const t=state.tasks.find(x=>x.id==id);if(t)t.done=!t.done;render();
-}
-
-function askAgentDraft(id){
-  const e=state.emails.find(x=>x.id===id);
-  if(e){state.chat.push({role:'user',text:'Draft a reply to: "'+e.subject+'" from '+e.from});navigate('agent');}
-}
-function askAgentFix(id){
-  const e=state.emails.find(x=>x.id===id);
-  if(e){navigate('agent');setTimeout(()=>{const i=document.getElementById('chat-input');if(i)i.value='The email "'+e.subject+'" was classified as '+e.project+' — is that right?';},100);}
-}
+function moveEmail(id,project){const e=state.emails.find(x=>x.id===id);if(e){e.project=project;e.manualOverride=true;e.agentLowConf=false;}if(state.selectedEmail?.id===id)state.selectedEmail=e;render();}
+function changePriority(id,priority){const e=state.emails.find(x=>x.id===id);if(e){e.priority=priority;e.manualOverride=true;}if(state.selectedEmail?.id===id)state.selectedEmail=e;render();}
+function selectEmail(id){const e=state.emails.find(x=>x.id===id);state.selectedEmail=state.selectedEmail?.id===id?null:e;render();}
+function addTask(text,project){if(!text?.trim())return;state.tasks.push({id:Date.now(),text:text.trim(),project:project||'',done:false});render();}
+function toggleTask(id){const t=state.tasks.find(x=>x.id==id);if(t)t.done=!t.done;render();}
+function askAgentDraft(id){const e=state.emails.find(x=>x.id===id);if(e){state.chat.push({role:'user',text:'Draft a reply to: "'+e.subject+'" from '+e.from});navigate('agent');}}
+function askAgentFix(id){const e=state.emails.find(x=>x.id===id);if(e){navigate('agent');setTimeout(()=>{const i=document.getElementById('chat-input');if(i)i.value='The email "'+e.subject+'" was classified as '+e.project+' — is that right?';},100);}}
 
 function emailRowHTML(e,showProject=true){
-  const c=PC[e.project]||PC.Other;
-  const sel=state.selectedEmail?.id===e.id;
+  const c=PC[e.project]||PC.Other,sel=state.selectedEmail?.id===e.id;
   const init=(e.from||'').replace(/<.*>/,'').trim().slice(0,2).toUpperCase();
-  return `<div class="email-row" style="background:${sel?c.bg:'transparent'};border-left-color:${sel?c.a:'transparent'}" onclick="selectEmail('${e.id}')">
+  return`<div class="email-row" style="background:${sel?c.bg:'transparent'};border-left-color:${sel?c.a:'transparent'}" onclick="selectEmail('${e.id}')">
     <div style="display:flex;gap:12px">
-      <div class="email-avatar" style="background:${c.a}">${init}</div>
+      <div style="width:36px;height:36px;border-radius:2px;background:${c.a};color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${init}</div>
       <div style="flex:1;min-width:0">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:3px">
           <span style="font-size:13px;font-weight:${e.read?400:600};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(e.from||'').replace(/<.*>/,'').trim()}</span>
@@ -338,20 +258,14 @@ function emailRowHTML(e,showProject=true){
 
 function emailDetailHTML(email){
   const c=PC[email.project]||PC.Other;
-  const movebtns=state.projects.concat(['Other']).map(p=>{
-    const pc=PC[p]||PC.Other,active=email.project===p;
-    return `<button onclick="moveEmail('${email.id}','${p}')" style="font-size:11px;padding:4px 12px;border-radius:2px;background:${active?pc.a:'#fff'};color:${active?'#fff':'#555'};border:1px solid ${active?pc.a:'#d0d0cc'};font-weight:${active?600:400}">${p}</button>`;
-  }).join('');
-  const pribtns=['high','normal','low'].map(p=>{
-    const pc=PRI[p],active=email.priority===p;
-    return `<button onclick="changePriority('${email.id}','${p}')" style="font-size:11px;padding:4px 12px;border-radius:2px;background:${active?pc.t:'#fff'};color:${active?'#fff':'#555'};border:1px solid ${active?pc.t:'#d0d0cc'};font-weight:${active?600:400}">${pc.l}</button>`;
-  }).join('');
-  return `<div style="background:#fff;border-top:4px solid ${c.a};border:1px solid ${c.b}">
+  const movebtns=state.projects.concat(['Other']).map(p=>{const pc=PC[p]||PC.Other,active=email.project===p;return`<button onclick="moveEmail('${email.id}','${p}')" style="font-size:11px;padding:4px 12px;border-radius:2px;background:${active?pc.a:'#fff'};color:${active?'#fff':'#555'};border:1px solid ${active?pc.a:'#d0d0cc'};font-weight:${active?600:400}">${p}</button>`;}).join('');
+  const pribtns=['high','normal','low'].map(p=>{const pc=PRI[p],active=email.priority===p;return`<button onclick="changePriority('${email.id}','${p}')" style="font-size:11px;padding:4px 12px;border-radius:2px;background:${active?pc.t:'#fff'};color:${active?'#fff':'#555'};border:1px solid ${active?pc.t:'#d0d0cc'};font-weight:${active?600:400}">${pc.l}</button>`;}).join('');
+  return`<div style="background:#fff;border-top:4px solid ${c.a};border:1px solid ${c.b}">
     <div style="padding:16px 20px;border-bottom:1px solid #e8e8e4">
       <div style="font-size:15px;font-weight:600;margin-bottom:8px;line-height:1.4">${email.subject||''}</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
-        <span style="font-size:12px;color:#555">${email.from||''}</span>
-        <span style="color:#ccc">·</span><span style="font-size:12px;color:#888">${email.date||''}</span>
+        <span style="font-size:12px;color:#555">${email.from||''}</span><span style="color:#ccc">·</span>
+        <span style="font-size:12px;color:#888">${email.date||''}</span>
         ${priTagHTML(email.priority)}${tagHTML(email.project,email.project)}
         ${email.needsReply?'<span class="tag" style="background:#FCEBEB;color:#791F1F;border:1px solid #F09595">Needs reply</span>':''}
         ${email.waitingReply?'<span class="tag" style="background:#FAEEDA;color:#633806;border:1px solid #EF9F27">Waiting</span>':''}
@@ -377,11 +291,10 @@ function emailDetailHTML(email){
 }
 
 function renderChat(){
-  const msgs=document.getElementById('chat-messages');
-  if(!msgs)return;
-  msgs.innerHTML=state.chat.map(m=>`<div class="chat-msg ${m.role}">
-    ${m.role==='agent'?'<div class="chat-ai-avatar">AI</div>':''}
-    <div class="chat-bubble ${m.role}">${(m.text||'').replace(/\n/g,'<br>').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/&lt;br&gt;/g,'<br>')}</div>
+  const msgs=document.getElementById('chat-messages');if(!msgs)return;
+  msgs.innerHTML=state.chat.map(m=>`<div style="display:flex;gap:12px;align-items:flex-start;flex-direction:${m.role==='agent'?'row':'row-reverse'}">
+    ${m.role==='agent'?'<div style="width:32px;height:32px;background:#534AB7;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border-radius:2px;flex-shrink:0">AI</div>':''}
+    <div style="max-width:75%;background:${m.role==='agent'?'#fff':'#534AB7'};color:${m.role==='agent'?'#1a1a1a':'#fff'};border:${m.role==='agent'?'1px solid #e8e8e4':'none'};padding:12px 16px;border-radius:2px;font-size:13px;line-height:1.7;white-space:pre-wrap">${(m.text||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
   </div>`).join('');
   msgs.scrollTop=msgs.scrollHeight;
 }
@@ -392,30 +305,20 @@ function renderSidebar(){
   const gb=document.getElementById('btn-gmail');
   if(gb){gb.className='sb-btn'+(state.authed?' connected':'');gb.textContent=(state.authed?'✓ ':'')+'Gmail';}
   const cb=document.getElementById('connect-btn');
-  if(cb){
-    if(state.authed){cb.textContent='Disconnect';cb.onclick=disconnect;cb.className='btn-disconnect';}
-    else{cb.textContent='Connect Gmail →';cb.onclick=connectGmail;cb.className='btn-connect';}
-  }
+  if(cb){if(state.authed){cb.textContent='Disconnect';cb.onclick=disconnect;cb.className='btn-disconnect';}else{cb.textContent='Connect Gmail →';cb.onclick=connectGmail;cb.className='btn-connect';}}
   const lca=document.getElementById('low-conf-alert');
-  if(lca){
-    lca.style.display=lowConf.length?'block':'none';
-    if(lowConf.length)lca.innerHTML=`<div style="background:#FAEEDA;color:#633806;border:1px solid #EF9F27;padding:6px 10px;border-radius:2px;font-size:11px;font-weight:500">⚠ ${lowConf.length} need review</div>`;
-  }
-  const nav=document.getElementById('sidebar-nav');
-  if(!nav)return;
+  if(lca){lca.style.display=lowConf.length?'block':'none';if(lowConf.length)lca.innerHTML=`<div style="background:#FAEEDA;color:#633806;border:1px solid #EF9F27;padding:6px 10px;border-radius:2px;font-size:11px;font-weight:500">⚠ ${lowConf.length} need review</div>`;}
+  const nav=document.getElementById('sidebar-nav');if(!nav)return;
   const items=[
-    {id:'dashboard',label:'Dashboard',count:null},
-    {id:'inbox',label:'Inbox',count:unread||null},
+    {id:'dashboard',label:'Dashboard',count:null},{id:'inbox',label:'Inbox',count:unread||null},
     {id:'tasks',label:'Tasks',count:state.tasks.filter(t=>!t.done).length||null},
-    {id:'calendar',label:'Calendar',count:null},
-    {id:'agent',label:'Agent chat',count:null},
-    null,
+    {id:'calendar',label:'Calendar',count:null},{id:'agent',label:'Agent chat',count:null},null,
     ...state.projects.map(p=>({id:'proj:'+p,label:p,color:PC[p]?.a,count:state.emails.filter(e=>e.project===p&&!e.read).length||null}))
   ];
-  nav.innerHTML=items.map((item,i)=>{
-    if(!item)return '<div class="divider"></div>';
+  nav.innerHTML=items.map((item)=>{
+    if(!item)return'<div class="divider"></div>';
     const active=state.page===item.id;
-    return `<div class="nav-item${active?' active':''}" style="border-left-color:${active?(item.color||'#7F77DD'):'transparent'}" onclick="navigate('${item.id}')">
+    return`<div class="nav-item${active?' active':''}" style="border-left-color:${active?(item.color||'#7F77DD'):'transparent'}" onclick="navigate('${item.id}')">
       ${item.color?`<div class="nav-dot" style="background:${item.color}"></div>`:''}
       <span class="nav-label">${item.label}</span>
       ${item.count?`<span class="nav-badge">${item.count}</span>`:''}
@@ -425,8 +328,7 @@ function renderSidebar(){
 
 function render(){
   renderSidebar();
-  const main=document.getElementById('main');
-  if(!main)return;
+  const main=document.getElementById('main');if(!main)return;
   const today=new Date().toISOString().slice(0,10);
   const unread=state.emails.filter(e=>!e.read).length;
   const needsReply=state.emails.filter(e=>e.needsReply).length;
@@ -439,100 +341,39 @@ function render(){
     main.style.cssText='';
     main.innerHTML=`<div class="page">
       <div class="page-title">Good morning, Kim</div>
-      ${!state.authed?`<div class="connect-banner">
-        <div><div style="font-weight:600;font-size:14px;color:#26215C;margin-bottom:4px">Connect your Gmail to get started</div>
-        <div style="font-size:12px;color:#534AB7">Sign in with kim.diamond@truecitrus.com</div></div>
-        <button onclick="connectGmail()" style="padding:10px 22px;background:#534AB7;color:#fff;border:none;border-radius:2px;font-weight:600;font-size:13px;flex-shrink:0">Connect Gmail →</button>
-      </div>`:''}
+      ${!state.authed?`<div class="connect-banner"><div><div style="font-weight:600;font-size:14px;color:#26215C;margin-bottom:4px">Connect your Gmail to get started</div><div style="font-size:12px;color:#534AB7">Sign in with kim.diamond@truecitrus.com</div></div><button onclick="connectGmail()" style="padding:10px 22px;background:#534AB7;color:#fff;border:none;border-radius:2px;font-weight:600;font-size:13px;flex-shrink:0">Connect Gmail →</button></div>`:''}
       <div class="stats">
-        ${[{l:'Unread',v:unread,bg:'#FCEBEB',tc:'#791F1F',bc:'#F09595'},{l:'Needs reply',v:needsReply,bg:'#E6F1FB',tc:'#0C447C',bc:'#85B7EB'},{l:'Waiting on',v:waiting,bg:'#FAEEDA',tc:'#633806',bc:'#EF9F27'},{l:'High priority',v:highPri,bg:'#FCEBEB',tc:'#791F1F',bc:'#F09595'}].map(c=>`
-        <div class="stat" style="background:${c.bg};border:1px solid ${c.bc}">
-          <div class="stat-label" style="color:${c.tc}">${c.l}</div>
-          <div class="stat-value" style="color:${c.tc}">${c.v}</div>
-        </div>`).join('')}
+        ${[{l:'Unread',v:unread,bg:'#FCEBEB',tc:'#791F1F',bc:'#F09595'},{l:'Needs reply',v:needsReply,bg:'#E6F1FB',tc:'#0C447C',bc:'#85B7EB'},{l:'Waiting on',v:waiting,bg:'#FAEEDA',tc:'#633806',bc:'#EF9F27'},{l:'High priority',v:highPri,bg:'#FCEBEB',tc:'#791F1F',bc:'#F09595'}].map(c=>`<div class="stat" style="background:${c.bg};border:1px solid ${c.bc}"><div class="stat-label" style="color:${c.tc}">${c.l}</div><div class="stat-value" style="color:${c.tc}">${c.v}</div></div>`).join('')}
       </div>
-      ${lowConf.length?`<div class="review-banner">
-        <div style="font-size:13px;font-weight:600;color:#412402;margin-bottom:10px">⚠ ${lowConf.length} email${lowConf.length>1?'s':''} flagged</div>
-        ${lowConf.map(e=>`<div style="display:flex;align-items:center;gap:12px;padding:7px 0;border-top:1px solid rgba(186,117,23,0.2)">
-          <span style="flex:1;font-size:13px;color:#633806;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.subject}</span>
-          ${tagHTML(e.project,e.project)}
-          <button onclick="selectEmail('${e.id}');navigate('inbox')" style="font-size:11px;padding:4px 12px;background:#633806;color:#fff;border:none;border-radius:2px">Review</button>
-          <button onclick="askAgentFix('${e.id}')" style="font-size:11px;padding:4px 12px;border-radius:2px">Ask agent</button>
-        </div>`).join('')}
-      </div>`:''}
+      ${lowConf.length?`<div class="review-banner"><div style="font-size:13px;font-weight:600;color:#412402;margin-bottom:10px">⚠ ${lowConf.length} flagged for review</div>${lowConf.map(e=>`<div style="display:flex;align-items:center;gap:12px;padding:7px 0;border-top:1px solid rgba(186,117,23,0.2)"><span style="flex:1;font-size:13px;color:#633806;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.subject}</span>${tagHTML(e.project,e.project)}<button onclick="selectEmail('${e.id}');navigate('inbox')" style="font-size:11px;padding:4px 12px;background:#633806;color:#fff;border:none;border-radius:2px">Review</button><button onclick="askAgentFix('${e.id}')" style="font-size:11px;padding:4px 12px;border-radius:2px">Ask agent</button></div>`).join('')}</div>`:''}
       <div class="grid-2">
         <div class="card">
-          <div class="card-header" style="border-bottom-color:#534AB7">
-            <div class="card-accent" style="background:#534AB7"></div>
-            <span class="card-title">Recent emails</span><span class="card-count">(${state.emails.length})</span>
-            <button class="expand-btn" onclick="navigate('inbox')">Expand</button>
-          </div>
+          <div class="card-header" style="border-bottom-color:#534AB7"><div class="card-accent" style="background:#534AB7"></div><span class="card-title">Recent emails</span><span class="card-count">(${state.emails.length})</span><button class="expand-btn" onclick="navigate('inbox')">Expand</button></div>
           ${state.emails.length===0?`<div style="padding:24px;color:#888;font-size:13px">${state.authed?'Loading...':'Connect Gmail to load emails.'}</div>`:''}
           ${state.emails.slice(0,5).map(e=>emailRowHTML(e)).join('')}
           ${state.selectedEmail&&state.emails.slice(0,5).find(e=>e.id===state.selectedEmail.id)?emailDetailHTML(state.selectedEmail):''}
         </div>
         <div class="card">
-          <div class="card-header" style="border-bottom-color:#0F6E56">
-            <div class="card-accent" style="background:#0F6E56"></div>
-            <span class="card-title">Tasks</span><span class="card-count">(${state.tasks.filter(t=>!t.done).length})</span>
-            <button class="expand-btn" onclick="navigate('tasks')">Expand</button>
-          </div>
-          <div style="padding:10px 20px;border-bottom:1px solid #e8e8e4;display:flex;gap:8px">
-            <input id="dt" placeholder="Add task..." style="flex:1;font-size:13px" onkeydown="if(event.key==='Enter'){addTask(this.value,'');this.value=''}"/>
-            <button onclick="addTask(document.getElementById('dt').value,'');document.getElementById('dt').value=''" style="background:#0F6E56;color:#fff;border:none;border-radius:2px;padding:5px 14px">Add</button>
-          </div>
-          ${state.tasks.slice(0,8).map(t=>`<div style="padding:11px 20px;border-bottom:1px solid #e8e8e4;display:flex;gap:12px;align-items:flex-start">
-            <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${JSON.stringify(t.id)})" style="margin-top:2px"/>
-            <div style="flex:1"><div style="font-size:13px;text-decoration:${t.done?'line-through':'none'};color:${t.done?'#aaa':'#1a1a1a'};margin-bottom:4px">${t.text}</div>
-            ${t.project?tagHTML(t.project,t.project):''}</div>
-          </div>`).join('')}
+          <div class="card-header" style="border-bottom-color:#0F6E56"><div class="card-accent" style="background:#0F6E56"></div><span class="card-title">Tasks</span><span class="card-count">(${state.tasks.filter(t=>!t.done).length})</span><button class="expand-btn" onclick="navigate('tasks')">Expand</button></div>
+          <div style="padding:10px 20px;border-bottom:1px solid #e8e8e4;display:flex;gap:8px"><input id="dt" placeholder="Add task..." style="flex:1;font-size:13px" onkeydown="if(event.key==='Enter'){addTask(this.value,'');this.value=''}"/><button onclick="addTask(document.getElementById('dt').value,'');document.getElementById('dt').value=''" style="background:#0F6E56;color:#fff;border:none;border-radius:2px;padding:5px 14px">Add</button></div>
+          ${state.tasks.slice(0,8).map(t=>`<div style="padding:11px 20px;border-bottom:1px solid #e8e8e4;display:flex;gap:12px;align-items:flex-start"><input type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${JSON.stringify(t.id)})" style="margin-top:2px"/><div style="flex:1"><div style="font-size:13px;text-decoration:${t.done?'line-through':'none'};color:${t.done?'#aaa':'#1a1a1a'};margin-bottom:4px">${t.text}</div>${t.project?tagHTML(t.project,t.project):''}</div></div>`).join('')}
         </div>
       </div>
       <div class="grid-2b">
         <div class="card">
-          <div class="card-header" style="border-bottom-color:#185FA5">
-            <div class="card-accent" style="background:#185FA5"></div>
-            <span class="card-title">Meetings</span>
-            <button class="expand-btn" onclick="navigate('calendar')">Expand</button>
-          </div>
+          <div class="card-header" style="border-bottom-color:#185FA5"><div class="card-accent" style="background:#185FA5"></div><span class="card-title">Meetings</span><button class="expand-btn" onclick="navigate('calendar')">Expand</button></div>
           ${state.meetings.length===0?'<div style="padding:24px;color:#888;font-size:13px">Sync Calendar to load meetings.</div>':''}
-          ${state.meetings.filter(m=>m.date>=today).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,5).map(m=>{
-            const c=PC[m.project]||PC.Other,d=new Date(m.date+'T12:00');
-            return `<div style="padding:12px 20px;border-bottom:1px solid #e8e8e4;display:flex;gap:14px;align-items:center">
-              <div style="width:44px;text-align:center;background:${c.bg};border:1px solid ${c.b};padding:6px 0;flex-shrink:0">
-                <div style="font-size:9px;font-weight:600;color:${c.t};text-transform:uppercase">${d.toLocaleString('en-US',{month:'short'})}</div>
-                <div style="font-size:20px;font-weight:700;color:${c.a};line-height:1.1">${d.getDate()}</div>
-              </div>
-              <div style="flex:1"><div style="font-size:13px;font-weight:500;margin-bottom:4px">${m.title}</div>
-              <div style="display:flex;gap:8px"><span style="font-size:12px;color:#888">${m.time||''}</span>${tagHTML(m.project,m.project)}</div></div>
-            </div>`;
-          }).join('')}
+          ${state.meetings.filter(m=>m.date>=today).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,5).map(m=>{const c=PC[m.project]||PC.Other,d=new Date(m.date+'T12:00');return`<div style="padding:12px 20px;border-bottom:1px solid #e8e8e4;display:flex;gap:14px;align-items:center"><div style="width:44px;text-align:center;background:${c.bg};border:1px solid ${c.b};padding:6px 0;flex-shrink:0"><div style="font-size:9px;font-weight:600;color:${c.t};text-transform:uppercase">${d.toLocaleString('en-US',{month:'short'})}</div><div style="font-size:20px;font-weight:700;color:${c.a};line-height:1.1">${d.getDate()}</div></div><div style="flex:1"><div style="font-size:13px;font-weight:500;margin-bottom:4px">${m.title}</div><div style="display:flex;gap:8px"><span style="font-size:12px;color:#888">${m.time||''}</span>${tagHTML(m.project,m.project)}</div></div></div>`;}).join('')}
         </div>
         <div class="card">
-          <div class="card-header" style="border-bottom-color:#993556">
-            <div class="card-accent" style="background:#993556"></div>
-            <span class="card-title">Projects</span><span class="card-count">(${state.projects.length})</span>
-          </div>
+          <div class="card-header" style="border-bottom-color:#993556"><div class="card-accent" style="background:#993556"></div><span class="card-title">Projects</span><span class="card-count">(${state.projects.length})</span></div>
           <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr))">
-            ${state.projects.map(p=>{
-              const c=PC[p]||PC.Other;
-              const ne=state.emails.filter(e=>e.project===p&&!e.read).length;
-              const nt=state.tasks.filter(t=>t.project===p&&!t.done).length;
-              return `<div onclick="navigate('proj:${p}')" style="padding:14px 16px;border-bottom:1px solid #e8e8e4;border-right:1px solid #e8e8e4;cursor:pointer;border-top:3px solid ${c.a}">
-                <div style="font-size:13px;font-weight:600;margin-bottom:8px">${p}</div>
-                <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-                  <span class="tag" style="background:${c.bg};color:${c.t};border:1px solid ${c.b}">${state.projData[p]?.status||'Active'}</span>
-                  ${ne?`<span style="font-size:11px;color:#666">${ne} new</span>`:''}
-                  ${nt?`<span style="font-size:11px;color:#666">${nt} tasks</span>`:''}
-                </div>
-              </div>`;
-            }).join('')}
+            ${state.projects.map(p=>{const c=PC[p]||PC.Other,ne=state.emails.filter(e=>e.project===p&&!e.read).length,nt=state.tasks.filter(t=>t.project===p&&!t.done).length;return`<div onclick="navigate('proj:${p}')" style="padding:14px 16px;border-bottom:1px solid #e8e8e4;border-right:1px solid #e8e8e4;cursor:pointer;border-top:3px solid ${c.a}"><div style="font-size:13px;font-weight:600;margin-bottom:8px">${p}</div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="tag" style="background:${c.bg};color:${c.t};border:1px solid ${c.b}">${state.projData[p]?.status||'Active'}</span>${ne?`<span style="font-size:11px;color:#666">${ne} new</span>`:''}${nt?`<span style="font-size:11px;color:#666">${nt} tasks</span>`:''}</div></div>`;}).join('')}
           </div>
         </div>
       </div>
     </div>`;
   }
-
   else if(state.page==='inbox'){
     main.style.cssText='flex:1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);overflow:hidden';
     main.innerHTML=`
@@ -547,51 +388,22 @@ function render(){
       </div>
       <div style="overflow-y:auto;background:#f4f4f0">${state.selectedEmail?emailDetailHTML(state.selectedEmail):'<div style="padding:32px;color:#888;font-size:13px">Select an email to read</div>'}</div>`;
   }
-
   else if(state.page==='tasks'){
     main.style.cssText='';
     main.innerHTML=`<div class="page"><div class="card">
-      <div class="card-header" style="border-bottom-color:#0F6E56">
-        <div class="card-accent" style="background:#0F6E56"></div>
-        <span class="card-title">All tasks</span><span class="card-count">(${state.tasks.filter(t=>!t.done).length} open)</span>
-      </div>
-      <div style="padding:10px 20px;border-bottom:1px solid #e8e8e4;display:flex;gap:8px">
-        <input id="ti" placeholder="Add task..." style="flex:1;font-size:13px" onkeydown="if(event.key==='Enter'){addTask(this.value,'');this.value=''}"/>
-        <button onclick="addTask(document.getElementById('ti').value,'');document.getElementById('ti').value=''" style="background:#0F6E56;color:#fff;border:none;border-radius:2px;padding:6px 16px">Add</button>
-      </div>
-      ${state.tasks.map(t=>`<div style="padding:14px 20px;border-bottom:1px solid #e8e8e4;display:flex;gap:14px;align-items:flex-start">
-        <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${JSON.stringify(t.id)})" style="margin-top:2px"/>
-        <div style="flex:1">
-          <div style="font-size:14px;text-decoration:${t.done?'line-through':'none'};color:${t.done?'#aaa':'#1a1a1a'};margin-bottom:6px">${t.text}</div>
-          <div style="display:flex;gap:8px">${t.project?tagHTML(t.project,t.project):''}${t.due?`<span style="font-size:12px;color:#888">Due ${t.due}</span>`:''}</div>
-        </div>
-      </div>`).join('')}
+      <div class="card-header" style="border-bottom-color:#0F6E56"><div class="card-accent" style="background:#0F6E56"></div><span class="card-title">All tasks</span><span class="card-count">(${state.tasks.filter(t=>!t.done).length} open)</span></div>
+      <div style="padding:10px 20px;border-bottom:1px solid #e8e8e4;display:flex;gap:8px"><input id="ti" placeholder="Add task..." style="flex:1;font-size:13px" onkeydown="if(event.key==='Enter'){addTask(this.value,'');this.value=''}"/><button onclick="addTask(document.getElementById('ti').value,'');document.getElementById('ti').value=''" style="background:#0F6E56;color:#fff;border:none;border-radius:2px;padding:6px 16px">Add</button></div>
+      ${state.tasks.map(t=>`<div style="padding:14px 20px;border-bottom:1px solid #e8e8e4;display:flex;gap:14px;align-items:flex-start"><input type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${JSON.stringify(t.id)})" style="margin-top:2px"/><div style="flex:1"><div style="font-size:14px;text-decoration:${t.done?'line-through':'none'};color:${t.done?'#aaa':'#1a1a1a'};margin-bottom:6px">${t.text}</div><div style="display:flex;gap:8px">${t.project?tagHTML(t.project,t.project):''}${t.due?`<span style="font-size:12px;color:#888">Due ${t.due}</span>`:''}</div></div></div>`).join('')}
     </div></div>`;
   }
-
   else if(state.page==='calendar'){
     main.style.cssText='';
     main.innerHTML=`<div class="page"><div class="card">
-      <div class="card-header" style="border-bottom-color:#185FA5">
-        <div class="card-accent" style="background:#185FA5"></div>
-        <span class="card-title">Calendar</span>
-        <button onclick="syncCalendar()" style="margin-left:auto;font-size:11px;padding:3px 10px">↻ Sync</button>
-      </div>
+      <div class="card-header" style="border-bottom-color:#185FA5"><div class="card-accent" style="background:#185FA5"></div><span class="card-title">Calendar</span><button onclick="syncCalendar()" style="margin-left:auto;font-size:11px;padding:3px 10px">↻ Sync</button></div>
       ${state.meetings.length===0?'<div style="padding:24px;color:#888;font-size:13px">Sync Calendar to load your meetings.</div>':''}
-      ${state.meetings.sort((a,b)=>a.date.localeCompare(b.date)).map(m=>{
-        const c=PC[m.project]||PC.Other,d=new Date(m.date+'T12:00');
-        return `<div style="padding:16px 20px;border-bottom:1px solid #e8e8e4;display:flex;gap:16px;align-items:center;border-left:4px solid ${c.a}">
-          <div style="width:56px;text-align:center;background:${c.bg};border:1px solid ${c.b};padding:8px 0;flex-shrink:0">
-            <div style="font-size:10px;font-weight:600;color:${c.t};text-transform:uppercase">${d.toLocaleString('en-US',{month:'short'})}</div>
-            <div style="font-size:24px;font-weight:700;color:${c.a};line-height:1.1">${d.getDate()}</div>
-          </div>
-          <div><div style="font-size:15px;font-weight:500;margin-bottom:6px">${m.title}</div>
-          <div style="display:flex;gap:10px"><span style="font-size:13px;color:#888">${m.time||''}</span>${tagHTML(m.project,m.project)}</div></div>
-        </div>`;
-      }).join('')}
+      ${state.meetings.sort((a,b)=>a.date.localeCompare(b.date)).map(m=>{const c=PC[m.project]||PC.Other,d=new Date(m.date+'T12:00');return`<div style="padding:16px 20px;border-bottom:1px solid #e8e8e4;display:flex;gap:16px;align-items:center;border-left:4px solid ${c.a}"><div style="width:56px;text-align:center;background:${c.bg};border:1px solid ${c.b};padding:8px 0;flex-shrink:0"><div style="font-size:10px;font-weight:600;color:${c.t};text-transform:uppercase">${d.toLocaleString('en-US',{month:'short'})}</div><div style="font-size:24px;font-weight:700;color:${c.a};line-height:1.1">${d.getDate()}</div></div><div><div style="font-size:15px;font-weight:500;margin-bottom:6px">${m.title}</div><div style="display:flex;gap:10px"><span style="font-size:13px;color:#888">${m.time||''}</span>${tagHTML(m.project,m.project)}</div></div></div>`;}).join('')}
     </div></div>`;
   }
-
   else if(state.page==='agent'){
     main.style.cssText='flex:1;display:flex;flex-direction:column;overflow:hidden';
     main.innerHTML=`
@@ -611,28 +423,18 @@ function render(){
       </div>`;
     renderChat();
   }
-
   else if(cp){
     main.style.cssText='';
-    const c=PC[cp]||PC.Other;
-    const projEmails=state.emails.filter(e=>e.project===cp);
+    const c=PC[cp]||PC.Other,projEmails=state.emails.filter(e=>e.project===cp);
     main.innerHTML=`<div class="page">
       <div style="display:flex;align-items:center;gap:14px">
         <div style="width:12px;height:32px;background:${c.a}"></div>
-        <div>
-          <div style="font-size:20px;font-weight:700">${cp}</div>
-          <div style="font-size:13px;color:#666;margin-top:2px">${projEmails.length} emails · ${state.tasks.filter(t=>t.project===cp&&!t.done).length} open tasks</div>
-        </div>
-        <select style="margin-left:auto;font-size:12px;padding:5px 10px;border-radius:2px" onchange="state.projData['${cp}'].status=this.value">
-          ${['Active','On Hold','Complete'].map(s=>`<option${(state.projData[cp]?.status||'Active')===s?' selected':''}>${s}</option>`).join('')}
-        </select>
+        <div><div style="font-size:20px;font-weight:700">${cp}</div><div style="font-size:13px;color:#666;margin-top:2px">${projEmails.length} emails · ${state.tasks.filter(t=>t.project===cp&&!t.done).length} open tasks</div></div>
+        <select style="margin-left:auto;font-size:12px;padding:5px 10px;border-radius:2px" onchange="state.projData['${cp}'].status=this.value">${['Active','On Hold','Complete'].map(s=>`<option${(state.projData[cp]?.status||'Active')===s?' selected':''}>${s}</option>`).join('')}</select>
       </div>
       <div style="display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:20px">
         <div class="card">
-          <div class="card-header" style="border-bottom-color:${c.a}">
-            <div class="card-accent" style="background:${c.a}"></div>
-            <span class="card-title">Emails</span><span class="card-count">(${projEmails.length})</span>
-          </div>
+          <div class="card-header" style="border-bottom-color:${c.a}"><div class="card-accent" style="background:${c.a}"></div><span class="card-title">Emails</span><span class="card-count">(${projEmails.length})</span></div>
           ${projEmails.length===0?'<div style="padding:24px;color:#888;font-size:13px">No emails for this project yet.</div>':''}
           ${projEmails.map(e=>emailRowHTML(e,false)).join('')}
           ${state.selectedEmail&&projEmails.find(e=>e.id===state.selectedEmail.id)?emailDetailHTML(state.selectedEmail):''}
@@ -640,56 +442,47 @@ function render(){
         <div style="display:flex;flex-direction:column;gap:16px">
           <div class="card">
             <div style="padding:14px 20px;border-bottom:1px solid #e8e8e4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px">Notes</div>
-            <div style="padding:14px 20px">
-              <textarea rows="5" style="width:100%;font-size:13px;resize:vertical;line-height:1.6;padding:10px" placeholder="Notes, links, memos..." onchange="state.projData['${cp}'].notes=this.value">${state.projData[cp]?.notes||''}</textarea>
-            </div>
+            <div style="padding:14px 20px"><textarea rows="5" style="width:100%;font-size:13px;resize:vertical;line-height:1.6;padding:10px" placeholder="Notes, links, memos..." onchange="state.projData['${cp}'].notes=this.value">${state.projData[cp]?.notes||''}</textarea></div>
           </div>
           <div class="card">
             <div style="padding:14px 20px;border-bottom:1px solid #e8e8e4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px">Tasks</div>
-            <div style="padding:10px 20px;border-bottom:1px solid #e8e8e4;display:flex;gap:8px">
-              <input id="pt" placeholder="Add task..." style="flex:1;font-size:13px" onkeydown="if(event.key==='Enter'){addTask(this.value,'${cp}');this.value=''}"/>
-              <button onclick="addTask(document.getElementById('pt').value,'${cp}');document.getElementById('pt').value=''" style="background:${c.a};color:#fff;border:none;border-radius:2px;padding:5px 14px">Add</button>
-            </div>
-            ${state.tasks.filter(t=>t.project===cp).map(t=>`<div style="padding:11px 20px;border-bottom:1px solid #e8e8e4;display:flex;gap:12px;align-items:center">
-              <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${JSON.stringify(t.id)})"/>
-              <span style="font-size:13px;flex:1;text-decoration:${t.done?'line-through':'none'};color:${t.done?'#aaa':'#1a1a1a'}">${t.text}</span>
-            </div>`).join('')}
+            <div style="padding:10px 20px;border-bottom:1px solid #e8e8e4;display:flex;gap:8px"><input id="pt" placeholder="Add task..." style="flex:1;font-size:13px" onkeydown="if(event.key==='Enter'){addTask(this.value,'${cp}');this.value=''}"/><button onclick="addTask(document.getElementById('pt').value,'${cp}');document.getElementById('pt').value=''" style="background:${c.a};color:#fff;border:none;border-radius:2px;padding:5px 14px">Add</button></div>
+            ${state.tasks.filter(t=>t.project===cp).map(t=>`<div style="padding:11px 20px;border-bottom:1px solid #e8e8e4;display:flex;gap:12px;align-items:center"><input type="checkbox" ${t.done?'checked':''} onchange="toggleTask(${JSON.stringify(t.id)})"/><span style="font-size:13px;flex:1;text-decoration:${t.done?'line-through':'none'};color:${t.done?'#aaa':'#1a1a1a'}">${t.text}</span></div>`).join('')}
           </div>
-          ${state.projData[cp]?.driveFiles?.length?`<div class="card">
-            <div style="padding:14px 20px;border-bottom:1px solid #e8e8e4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px">Drive files</div>
-            <div style="padding:14px 20px;display:flex;gap:8px;flex-wrap:wrap">
-              ${state.projData[cp].driveFiles.map(f=>`<a href="${f.link}" target="_blank" style="font-size:12px;background:#f4f4f0;border:1px solid #e0e0dc;padding:4px 12px;border-radius:2px;color:#185FA5;text-decoration:none">📄 ${f.name}</a>`).join('')}
-            </div>
-          </div>`:''}
+          ${state.projData[cp]?.driveFiles?.length?`<div class="card"><div style="padding:14px 20px;border-bottom:1px solid #e8e8e4;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px">Drive files</div><div style="padding:14px 20px;display:flex;gap:8px;flex-wrap:wrap">${state.projData[cp].driveFiles.map(f=>`<a href="${f.link}" target="_blank" style="font-size:12px;background:#f4f4f0;border:1px solid #e0e0dc;padding:4px 12px;border-radius:2px;color:#185FA5;text-decoration:none">📄 ${f.name}</a>`).join('')}</div></div>`:''}
         </div>
       </div>
     </div>`;
   }
 }
 
-// ── Boot ───────────────────────────────────────────────────────────────
+// ── Boot — reads token from URL hash ──────────────────────────────────
 (function init(){
-  const params=new URLSearchParams(location.search);
-  if(params.get('connected')==='true'){
-    history.replaceState({},'','/app.html');
-    const t=getToken();
-    if(t){
-      state.accessToken=t;state.authed=true;
-      showToast('Gmail connected! Loading emails...','success');
-      syncGmailWithToken(t);
-    } else {
-      showToast('Auth failed — token not found. Please try again.','error');
-    }
-    render();
-  } else if(params.get('error')){
-    showToast('Auth error: '+params.get('error'),'error');
-    history.replaceState({},'','/app.html');
-    render();
-  } else {
-    const t=getToken();
-    if(t){state.accessToken=t;state.authed=true;syncGmailWithToken(t);}
-    render();
+  const hash=location.hash;
+  if(hash&&hash.includes('token=')){
+    try{
+      const hp=new URLSearchParams(hash.slice(1));
+      const tb64=hp.get('token'),expiry=hp.get('expiry'),rb64=hp.get('refresh');
+      if(tb64){
+        const token=b64decode(tb64);
+        // Store in memory AND localStorage
+        state.accessToken=token;
+        lsSet('wh_token',token);
+        lsSet('wh_expiry',expiry||String(Date.now()+3500000));
+        if(rb64)lsSet('wh_refresh',b64decode(rb64));
+        state.authed=true;
+        history.replaceState({},'','/app.html');
+        showToast('Gmail connected! Loading emails...','success');
+        syncGmailWithToken(token);
+      }
+    }catch(err){showToast('Auth error: '+err.message,'error');}
+    render();return;
   }
+  const params=new URLSearchParams(location.search);
+  if(params.get('error')){showToast('Auth error: '+params.get('error'),'error');history.replaceState({},'','/app.html');}
+  const t=getToken();
+  if(t){state.accessToken=t;state.authed=true;syncGmailWithToken(t);}
+  render();
 })();
 </script>
 </body>
