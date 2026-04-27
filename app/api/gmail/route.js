@@ -21,7 +21,8 @@ export async function GET(request) {
     const listData = await listRes.json()
 
     if (listData.error) {
-      return NextResponse.json({ error: listData.error.message }, { status: 401 })
+      console.error('Gmail API error:', JSON.stringify(listData.error))
+      return NextResponse.json({ error: listData.error.message, code: listData.error.code, status_str: listData.error.status }, { status: 401 })
     }
 
     const messages = listData.messages || []

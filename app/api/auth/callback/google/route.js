@@ -35,8 +35,9 @@ export async function GET(request) {
     }
 
     const expiry = Date.now() + 3500000
-    const tokenB64 = Buffer.from(tokens.access_token).toString('base64url')
-    const refreshB64 = tokens.refresh_token ? Buffer.from(tokens.refresh_token).toString('base64url') : ''
+    // Use encodeURIComponent to safely pass token
+    const tokenB64 = Buffer.from(tokens.access_token).toString('base64')
+    const refreshB64 = tokens.refresh_token ? Buffer.from(tokens.refresh_token).toString('base64') : ''
 
     // Use an HTML page that sets the hash BEFORE navigating
     // This way the hash is set by JS in the same origin, not via redirect
@@ -59,7 +60,9 @@ var REFRESH = '${refreshB64}';
 
 // Write to localStorage from THIS page (same origin as app.html)
 try {
-  localStorage.setItem('wh_token', atob(TOKEN.replace(/-/g,'+').replace(/_/g,'/')));
+  var decoded = atob(TOKEN);
+  console.log('Token decoded length:', decoded.length, 'first 30 chars:', decoded.substring(0,30));
+  localStorage.setItem('wh_token', decoded);
   localStorage.setItem('wh_expiry', EXPIRY);
   if (REFRESH) {
     localStorage.setItem('wh_refresh', atob(REFRESH.replace(/-/g,'+').replace(/_/g,'/')));
