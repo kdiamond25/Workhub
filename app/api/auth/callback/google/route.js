@@ -29,18 +29,24 @@ export async function GET(request) {
     const tokens = await tokenRes.json()
 
     if (tokens.error) {
+      console.error('Token exchange error:', JSON.stringify(tokens))
       return new Response(`<script>location.href='/app.html?error=${encodeURIComponent(tokens.error_description || tokens.error)}'</script>`, {
         headers: { 'Content-Type': 'text/html' }
       })
     }
 
     const expiry = Date.now() + 3500000
-    // Use encodeURIComponent to safely pass token
-    const tokenB64 = Buffer.from(tokens.access_token).toString('base64')
-    const refreshB64 = tokens.refresh_token ? Buffer.from(tokens.refresh_token).toString('base64') : ''
 
-    // Use an HTML page that sets the hash BEFORE navigating
-    // This way the hash is set by JS in the same origin, not via redirect
+    // JSON encode the entire token data — safest way to embed in HTML
+    const tokenData = JSON.stringify({
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token || null,
+      expiry: expiry
+    })
+
+    // Double-encode as base64 to safely embed in HTML without any escaping issues
+    const safeData = Buffer.from(tokenData).toString('base64')
+
     const html = `<!DOCTYPE html>
 <html>
 <head>
@@ -49,35 +55,54 @@ export async function GET(request) {
 body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#f4f4f0}
 .box{background:#fff;padding:40px 50px;border:1px solid #e8e8e4;text-align:center}
 h2{color:#534AB7;margin-bottom:8px;font-size:20px}p{color:#666;font-size:14px}
+#status{margin-top:12px;font-size:12px;color:#888}
 </style>
 </head>
 <body>
-<div class="box"><h2>✓ Gmail Connected</h2><p>Loading WorkHub...</p></div>
+<div class="box">
+  <h2>&#10003; Gmail Connected</h2>
+  <p>Loading WorkHub...</p>
+  <div id="status">Saving credentials...</div>
+</div>
 <script>
-var TOKEN = '${tokenB64}';
-var EXPIRY = '${expiry}';
-var REFRESH = '${refreshB64}';
-
-// Write to localStorage from THIS page (same origin as app.html)
-try {
-  var decoded = atob(TOKEN);
-  console.log('Token decoded length:', decoded.length, 'first 30 chars:', decoded.substring(0,30));
-  localStorage.setItem('wh_token', decoded);
-  localStorage.setItem('wh_expiry', EXPIRY);
-  if (REFRESH) {
-    localStorage.setItem('wh_refresh', atob(REFRESH.replace(/-/g,'+').replace(/_/g,'/')));
+(function() {
+  var DATA = '${safeData}';
+  var status = document.getElementById('status');
+  
+  try {
+    var json = atob(DATA);
+    var parsed = JSON.parse(json);
+    
+    console.log('Token length:', parsed.access_token ? parsed.access_token.length : 'MISSING');
+    console.log('Token starts with:', parsed.access_token ? parsed.access_token.substring(0, 10) : 'N/A');
+    
+    localStorage.setItem('wh_token', parsed.access_token);
+    localStorage.setItem('wh_expiry', String(parsed.expiry));
+    if (parsed.refresh_token) {
+      localStorage.setItem('wh_refresh', parsed.refresh_token);
+    }
+    
+    var saved = localStorage.getItem('wh_token');
+    var savedLen = saved ? saved.length : 0;
+    console.log('Saved token length:', savedLen);
+    
+    if (savedLen > 100) {
+      status.textContent = 'Connected! Redirecting...';
+      status.style.color = '#0F6E56';
+    } else {
+      status.textContent = 'Warning: token may be incomplete (len=' + savedLen + ')';
+      status.style.color = '#993C1D';
+    }
+  } catch(err) {
+    console.error('Error saving token:', err);
+    status.textContent = 'Error: ' + err.message;
+    status.style.color = '#993C1D';
   }
-  console.log('wh_token saved, length:', localStorage.getItem('wh_token').length);
-} catch(e) {
-  console.error('localStorage write failed:', e);
-}
-
-// Navigate to app.html after confirming write
-setTimeout(function() {
-  var check = localStorage.getItem('wh_token');
-  console.log('Pre-navigate check:', check ? 'OK length='+check.length : 'MISSING');
-  window.location.replace('/app.html?connected=true');
-}, 1200);
+  
+  setTimeout(function() {
+    window.location.replace('/app.html?connected=true');
+  }, 1500);
+})();
 </script>
 </body>
 </html>`
@@ -87,11 +112,11 @@ setTimeout(function() {
       headers: {
         'Content-Type': 'text/html',
         'Cache-Control': 'no-store',
-        'X-Frame-Options': 'DENY',
       },
     })
 
   } catch (e) {
+    console.error('Callback error:', e)
     return new Response(`<script>location.href='/app.html?error=server_error'</script>`, {
       headers: { 'Content-Type': 'text/html' }
     })
