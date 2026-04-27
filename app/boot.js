@@ -1,13 +1,10 @@
-// Replace just the Boot section at the bottom of app.html
+// Boot
 (function init(){
   const params=new URLSearchParams(location.search);
-  
   if(params.get('connected')==='true'){
     history.replaceState({},'','/app.html');
-    // Token should be in localStorage from callback page
-    const t=lsGet('wh_token');
-    const e=parseInt(lsGet('wh_expiry')||'0');
-    console.log('Connected flow - token:', t?'found length='+t.length:'MISSING', 'expiry valid:', e>Date.now());
+    const t=lsGet('wh_token'),e=parseInt(lsGet('wh_expiry')||'0');
+    console.log('connected=true, token:', t?'found len='+t.length:'MISSING', 'expiry ok:', e>Date.now());
     if(t&&e>Date.now()){
       state.accessToken=t;state.authed=true;
       showToast('Gmail connected! Loading emails...','success');
@@ -17,12 +14,7 @@
     }
     render();return;
   }
-  
-  if(params.get('error')){
-    showToast('Auth error: '+params.get('error'),'error');
-    history.replaceState({},'','/app.html');
-  }
-  
+  if(params.get('error')){showToast('Auth error: '+params.get('error'),'error');history.replaceState({},'','/app.html');}
   const t=lsGet('wh_token'),e=parseInt(lsGet('wh_expiry')||'0');
   if(t&&e>Date.now()){state.accessToken=t;state.authed=true;syncGmailWithToken(t);}
   render();

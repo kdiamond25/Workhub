@@ -456,32 +456,25 @@ function render(){
   }
 }
 
-// ── Boot — reads token from URL hash ──────────────────────────────────
+// ── Boot ──────────────────────────────────────────────────────────────
 (function init(){
-  const hash=location.hash;
-  if(hash&&hash.includes('token=')){
-    try{
-      const hp=new URLSearchParams(hash.slice(1));
-      const tb64=hp.get('token'),expiry=hp.get('expiry'),rb64=hp.get('refresh');
-      if(tb64){
-        const token=b64decode(tb64);
-        // Store in memory AND localStorage
-        state.accessToken=token;
-        lsSet('wh_token',token);
-        lsSet('wh_expiry',expiry||String(Date.now()+3500000));
-        if(rb64)lsSet('wh_refresh',b64decode(rb64));
-        state.authed=true;
-        history.replaceState({},'','/app.html');
-        showToast('Gmail connected! Loading emails...','success');
-        syncGmailWithToken(token);
-      }
-    }catch(err){showToast('Auth error: '+err.message,'error');}
+  const params=new URLSearchParams(location.search);
+  if(params.get('connected')==='true'){
+    history.replaceState({},'','/app.html');
+    const t=lsGet('wh_token'),e=parseInt(lsGet('wh_expiry')||'0');
+    console.log('connected=true token:',t?'found len='+t.length:'MISSING','expiry ok:',e>Date.now());
+    if(t&&e>Date.now()){
+      state.accessToken=t;state.authed=true;
+      showToast('Gmail connected! Loading emails...','success');
+      syncGmailWithToken(t);
+    } else {
+      showToast('Token missing — please try again','error');
+    }
     render();return;
   }
-  const params=new URLSearchParams(location.search);
   if(params.get('error')){showToast('Auth error: '+params.get('error'),'error');history.replaceState({},'','/app.html');}
-  const t=getToken();
-  if(t){state.accessToken=t;state.authed=true;syncGmailWithToken(t);}
+  const t=lsGet('wh_token'),e=parseInt(lsGet('wh_expiry')||'0');
+  if(t&&e>Date.now()){state.accessToken=t;state.authed=true;syncGmailWithToken(t);}
   render();
 })();
 </script>
