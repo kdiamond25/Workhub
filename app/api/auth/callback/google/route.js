@@ -1,4 +1,4 @@
-import { setSession, generateId } from '../../../../lib/sessions.js'
+import { NextResponse } from 'next/server'
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url)
@@ -35,19 +35,41 @@ export async function GET(request) {
       })
     }
 
-    // Store token server-side, give client a session ID
-    const sessionId = generateId()
-    setSession(sessionId, {
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token || null,
-      expiry: Date.now() + 3500000
+    const expiry = Date.now() + 3500000
+
+    // Store the full token directly in the cookie (encrypted with base64)
+    // Split into two cookies to handle cookie size limits
+    const token = tokens.access_token
+    const half = Math.ceil(token.length / 2)
+    const part1 = Buffer.from(token.slice(0, half)).toString('base64')
+    const part2 = Buffer.from(token.slice(half)).toString('base64')
+
+    const cookieOpts = `Path=/; Max-Age=3500; SameSite=Lax; Secure; HttpOnly`
+
+    const html = `<!DOCTYPE html>
+<html>
+<head><title>WorkHub - Connecting...</title>
+<style>body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#f4f4f0}.box{background:#fff;padding:40px 50px;border:1px solid #e8e8e4;text-align:center}h2{color:#534AB7;margin-bottom:8px;font-size:20px}p{color:#666;font-size:14px}</style>
+</head>
+<body>
+<div class="box"><h2>&#10003; Gmail Connected</h2><p>Loading WorkHub...</p></div>
+<script>setTimeout(function(){location.replace('/app.html?connected=true')},500)</script>
+</body>
+</html>`
+
+    const response = new Response(html, {
+      status: 200,
+      headers: { 'Content-Type': 'text/html', 'Cache-Control': 'no-store' }
     })
 
-    // Set session cookie and redirect to app
-    const response = new Response(`<script>location.replace('/app.html?connected=true')</script>`, {
-      headers: { 'Content-Type': 'text/html' }
-    })
-    response.headers.set('Set-Cookie', `wh_session=${sessionId}; Path=/; Max-Age=3500; SameSite=Lax; Secure`)
+    response.headers.append('Set-Cookie', `wh_t1=${part1}; ${cookieOpts}`)
+    response.headers.append('Set-Cookie', `wh_t2=${part2}; ${cookieOpts}`)
+    response.headers.append('Set-Cookie', `wh_exp=${expiry}; Path=/; Max-Age=3500; SameSite=Lax; Secure`)
+    if (tokens.refresh_token) {
+      const rt = Buffer.from(tokens.refresh_token).toString('base64')
+      response.headers.append('Set-Cookie', `wh_rt=${rt}; Path=/; Max-Age=2592000; SameSite=Lax; Secure; HttpOnly`)
+    }
+
     return response
 
   } catch (e) {

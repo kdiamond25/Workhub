@@ -1,28 +1,36 @@
 import { NextResponse } from 'next/server'
-import { getSession } from '../../lib/sessions.js'
-
-function getSessionId(request) {
-  const cookie = request.headers.get('cookie') || ''
-  const match = cookie.match(/wh_session=([^;]+)/)
-  return match ? match[1] : null
-}
 
 function getAccessToken(request) {
-  // Try session cookie first
-  const sessionId = getSessionId(request)
-  if (sessionId) {
-    const session = getSession(sessionId)
-    if (session?.access_token) return session.access_token
+  const cookie = request.headers.get('cookie') || ''
+  const getCookie = (name) => {
+    const match = cookie.match(new RegExp(`(?:^|;\\s*)${name}=([^;]+)`))
+    return match ? match[1] : null
   }
-  // Fall back to Authorization header
-  const auth = request.headers.get('Authorization')
-  if (auth?.startsWith('Bearer ')) return auth.replace('Bearer ', '').trim()
-  return null
+
+  const part1 = getCookie('wh_t1')
+  const part2 = getCookie('wh_t2')
+  const exp = getCookie('wh_exp')
+
+  if (!part1 || !part2) return null
+  if (exp && parseInt(exp) < Date.now()) return null
+
+  try {
+    const token = Buffer.from(part1, 'base64').toString() + Buffer.from(part2, 'base64').toString()
+    return token
+  } catch {
+    return null
+  }
 }
 
 export async function GET(request) {
   const token = getAccessToken(request)
-  if (!token) return NextResponse.json({ error: 'not_authenticated' }, { status: 401 })
+
+  if (!token) {
+    console.log('No token found in cookies')
+    return NextResponse.json({ error: 'not_authenticated' }, { status: 401 })
+  }
+
+  console.log('Token found, length:', token.length, 'starts with:', token.substring(0, 10))
 
   try {
     const listRes = await fetch(
@@ -69,6 +77,7 @@ export async function GET(request) {
 
     return NextResponse.json({ emails })
   } catch (e) {
+    console.error('Gmail fetch error:', e.message)
     return NextResponse.json({ error: e.message }, { status: 500 })
   }
 }

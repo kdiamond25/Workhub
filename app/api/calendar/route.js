@@ -1,16 +1,19 @@
 import { NextResponse } from 'next/server'
-import { getSession } from '../../lib/sessions.js'
 
 function getAccessToken(request) {
   const cookie = request.headers.get('cookie') || ''
-  const match = cookie.match(/wh_session=([^;]+)/)
-  if (match) {
-    const session = getSession(match[1])
-    if (session?.access_token) return session.access_token
+  const getCookie = (name) => {
+    const match = cookie.match(new RegExp(`(?:^|;\\s*)${name}=([^;]+)`))
+    return match ? match[1] : null
   }
-  const auth = request.headers.get('Authorization')
-  if (auth?.startsWith('Bearer ')) return auth.replace('Bearer ', '').trim()
-  return null
+  const part1 = getCookie('wh_t1')
+  const part2 = getCookie('wh_t2')
+  const exp = getCookie('wh_exp')
+  if (!part1 || !part2) return null
+  if (exp && parseInt(exp) < Date.now()) return null
+  try {
+    return Buffer.from(part1, 'base64').toString() + Buffer.from(part2, 'base64').toString()
+  } catch { return null }
 }
 
 export async function GET(request) {
@@ -35,31 +38,6 @@ export async function GET(request) {
       project: 'Other',
     }))
     return NextResponse.json({ events })
-  } catch (e) {
-    return NextResponse.json({ error: e.message }, { status: 500 })
-  }
-}
-
-export async function POST(request) {
-  const token = getAccessToken(request)
-  if (!token) return NextResponse.json({ error: 'not_authenticated' }, { status: 401 })
-
-  const { title, date, time, description } = await request.json()
-  const startDateTime = new Date(`${date}T${time || '09:00'}:00`)
-  const endDateTime = new Date(startDateTime.getTime() + 60 * 60 * 1000)
-
-  try {
-    const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        summary: title, description,
-        start: { dateTime: startDateTime.toISOString() },
-        end: { dateTime: endDateTime.toISOString() },
-      }),
-    })
-    const data = await res.json()
-    return NextResponse.json({ success: true, event: data })
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 })
   }
