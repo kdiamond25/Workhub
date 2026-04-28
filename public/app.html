@@ -152,37 +152,46 @@ function priTagHTML(p){const c=PRI[p]||PRI.normal;return`<span class="pri-tag" s
 async function syncGmailWithToken(token){
   const gb=document.getElementById('btn-gmail');if(gb)gb.textContent='Syncing...';
   try{
-    const res=await fetch('/api/gmail',{headers:{Authorization:'Bearer '+token}});
+    // If token is 'cookie', don't send Authorization header - let server use session cookie
+    const headers = token && token !== 'cookie' ? {Authorization:'Bearer '+token} : {};
+    const res=await fetch('/api/gmail',{headers, credentials:'include'});
     if(res.status===401){
-      lsDel('wh_token');lsDel('wh_expiry');
       state.authed=false;state.accessToken=null;
       showToast('Session expired — please reconnect','error');render();return;
     }
     const data=await res.json();
     if(data.emails){
       state.emails=data.emails.map(e=>({...e,project:classify(e.subject+' '+e.preview+' '+e.from)}));
-      state.authed=true;state.accessToken=token;
+      state.authed=true;
       showToast(data.emails.length+' emails loaded','success');render();
     }else if(data.error){showToast('Gmail error: '+data.error,'error');}
   }catch(e){showToast('Gmail sync failed','error');}
   renderSidebar();
 }
 
-async function syncGmail(){const t=getToken();if(!t){connectGmail();return;}syncGmailWithToken(t);}
+async function syncGmail(){
+  if(document.cookie.includes('wh_session=')){
+    syncGmailWithToken('cookie');return;
+  }
+  const t=getToken();if(!t){connectGmail();return;}
+  syncGmailWithToken(t);
+}
 
 async function syncCalendar(){
-  const t=getToken();if(!t){connectGmail();return;}
+  const t=getToken();if(!t&&!document.cookie.includes('wh_session=')){connectGmail();return;}
   try{
-    const res=await fetch('/api/calendar',{headers:{Authorization:'Bearer '+t}});
+    const headers=t&&t!=='cookie'?{Authorization:'Bearer '+t}:{};
+    const res=await fetch('/api/calendar',{headers,credentials:'include'});
     const data=await res.json();
     if(data.events){state.meetings=data.events.map(e=>({...e,project:classify(e.title+' '+(e.description||''))}));showToast(data.events.length+' events loaded','success');if(state.page==='calendar')render();else renderSidebar();}
   }catch(e){showToast('Calendar sync failed','error');}
 }
 
 async function syncDrive(){
-  const t=getToken();if(!t){connectGmail();return;}
+  const t=getToken();if(!t&&!document.cookie.includes('wh_session=')){connectGmail();return;}
   try{
-    const res=await fetch('/api/drive',{headers:{Authorization:'Bearer '+t}});
+    const headers=t&&t!=='cookie'?{Authorization:'Bearer '+t}:{};
+    const res=await fetch('/api/drive',{headers,credentials:'include'});
     const data=await res.json();
     if(data.files){
       const byProj={};
@@ -459,22 +468,32 @@ function render(){
 // ── Boot ──────────────────────────────────────────────────────────────
 (function init(){
   const params=new URLSearchParams(location.search);
+  
+  // Check if we have a session cookie (set by callback)
+  function hasSessionCookie(){
+    return document.cookie.includes('wh_session=');
+  }
+  
   if(params.get('connected')==='true'){
     history.replaceState({},'','/app.html');
-    const t=lsGet('wh_token'),e=parseInt(lsGet('wh_expiry')||'0');
-    console.log('connected=true token:',t?'found len='+t.length:'MISSING','expiry ok:',e>Date.now());
-    if(t&&e>Date.now()){
-      state.accessToken=t;state.authed=true;
+    if(hasSessionCookie()){
+      state.authed=true;
       showToast('Gmail connected! Loading emails...','success');
-      syncGmailWithToken(t);
+      // Fetch emails — server will use the session cookie automatically
+      syncGmailWithToken('cookie');
     } else {
-      showToast('Token missing — please try again','error');
+      showToast('Session cookie missing — please try again','error');
     }
     render();return;
   }
+  
   if(params.get('error')){showToast('Auth error: '+params.get('error'),'error');history.replaceState({},'','/app.html');}
-  const t=lsGet('wh_token'),e=parseInt(lsGet('wh_expiry')||'0');
-  if(t&&e>Date.now()){state.accessToken=t;state.authed=true;syncGmailWithToken(t);}
+  
+  // On page load, check if session cookie exists
+  if(hasSessionCookie()){
+    state.authed=true;
+    syncGmailWithToken('cookie');
+  }
   render();
 })();
 </script>

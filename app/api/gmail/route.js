@@ -1,16 +1,27 @@
 import { NextResponse } from 'next/server'
+import { getSession } from '../../lib/sessions.js'
 
-async function getAccessToken(request) {
-  // Get token from Authorization header (sent by frontend)
-  const auth = request.headers.get('Authorization')
-  if (auth?.startsWith('Bearer ')) {
-    return auth.replace('Bearer ', '').trim()
+function getSessionId(request) {
+  const cookie = request.headers.get('cookie') || ''
+  const match = cookie.match(/wh_session=([^;]+)/)
+  return match ? match[1] : null
+}
+
+function getAccessToken(request) {
+  // Try session cookie first
+  const sessionId = getSessionId(request)
+  if (sessionId) {
+    const session = getSession(sessionId)
+    if (session?.access_token) return session.access_token
   }
+  // Fall back to Authorization header
+  const auth = request.headers.get('Authorization')
+  if (auth?.startsWith('Bearer ')) return auth.replace('Bearer ', '').trim()
   return null
 }
 
 export async function GET(request) {
-  const token = await getAccessToken(request)
+  const token = getAccessToken(request)
   if (!token) return NextResponse.json({ error: 'not_authenticated' }, { status: 401 })
 
   try {
@@ -22,11 +33,10 @@ export async function GET(request) {
 
     if (listData.error) {
       console.error('Gmail API error:', JSON.stringify(listData.error))
-      return NextResponse.json({ error: listData.error.message, code: listData.error.code, status_str: listData.error.status }, { status: 401 })
+      return NextResponse.json({ error: listData.error.message, details: listData.error }, { status: 401 })
     }
 
     const messages = listData.messages || []
-
     const emails = await Promise.all(
       messages.slice(0, 20).map(async (msg) => {
         const msgRes = await fetch(
@@ -37,10 +47,7 @@ export async function GET(request) {
         const headers = msgData.payload?.headers || []
         const get = (name) => headers.find(h => h.name.toLowerCase() === name.toLowerCase())?.value || ''
         const isUnread = msgData.labelIds?.includes('UNREAD')
-        const files = (msgData.payload?.parts || [])
-          .filter(p => p.filename)
-          .map(p => p.filename)
-          .filter(Boolean)
+        const files = (msgData.payload?.parts || []).filter(p => p.filename).map(p => p.filename).filter(Boolean)
 
         return {
           id: msg.id,
@@ -67,7 +74,7 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const token = await getAccessToken(request)
+  const token = getAccessToken(request)
   if (!token) return NextResponse.json({ error: 'not_authenticated' }, { status: 401 })
 
   const { to, subject, body } = await request.json()

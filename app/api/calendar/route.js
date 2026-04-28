@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server'
+import { getSession } from '../../lib/sessions.js'
 
 function getAccessToken(request) {
+  const cookie = request.headers.get('cookie') || ''
+  const match = cookie.match(/wh_session=([^;]+)/)
+  if (match) {
+    const session = getSession(match[1])
+    if (session?.access_token) return session.access_token
+  }
   const auth = request.headers.get('Authorization')
   if (auth?.startsWith('Bearer ')) return auth.replace('Bearer ', '').trim()
   return null
@@ -15,8 +22,7 @@ export async function GET(request) {
 
   try {
     const res = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/primary/events?` +
-      `timeMin=${now.toISOString()}&timeMax=${twoWeeks.toISOString()}&singleEvents=true&orderBy=startTime&maxResults=20`,
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${now.toISOString()}&timeMax=${twoWeeks.toISOString()}&singleEvents=true&orderBy=startTime&maxResults=20`,
       { headers: { Authorization: `Bearer ${token}` } }
     )
     const data = await res.json()
