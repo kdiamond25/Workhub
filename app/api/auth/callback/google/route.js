@@ -1,4 +1,4 @@
-import { setSession, generateId } from '../../lib/sessions.js'
+import { setSession, generateId } from '../../../../lib/sessions.js'
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url)
