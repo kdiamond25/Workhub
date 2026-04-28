@@ -48,14 +48,34 @@ export async function GET(request) {
 
     const html = `<!DOCTYPE html>
 <html>
-<head><title>WorkHub - Connecting...</title>
-<style>body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#f4f4f0}.box{background:#fff;padding:40px 50px;border:1px solid #e8e8e4;text-align:center}h2{color:#534AB7;margin-bottom:8px;font-size:20px}p{color:#666;font-size:14px}</style>
-</head>
+<head><title>WorkHub - Connecting...</title></head>
 <body>
-<div class="box"><h2>&#10003; Gmail Connected</h2><p>Loading WorkHub...</p></div>
-<script>setTimeout(function(){location.replace('/app.html?connected=true')},500)</script>
+<h2>✓ Gmail Connected — Loading WorkHub...</h2>
+<script>
+  function getCookie(name) {
+    const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+    return match ? decodeURIComponent(match[2]) : null;
+  }
+  try {
+    const p1 = getCookie('wh_t1');
+    const p2 = getCookie('wh_t2');
+    const exp = getCookie('wh_exp');
+    if (p1 && p2) {
+      const token = atob(p1) + atob(p2);
+      localStorage.setItem('wh_token', token);
+      localStorage.setItem('wh_expiry', exp || String(Date.now() + 3500000));
+      console.log('Token written to localStorage, length:', token.length);
+    } else {
+      console.error('Cookies missing - p1:', !!p1, 'p2:', !!p2);
+    }
+  } catch(e) {
+    console.error('localStorage write failed:', e);
+  }
+  setTimeout(() => { window.location.href = '/app.html?connected=true'; }, 800);
+<\/script>
 </body>
 </html>`
+
 
     const response = new Response(html, {
       status: 200,
