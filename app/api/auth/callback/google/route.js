@@ -5,7 +5,7 @@ export async function GET(request) {
   const code = searchParams.get('code')
 
   if (!code) {
-    return new Response(`<script>location.href='/app.html?error=no_code'</script>`, {
+    return new Response(`<html><body><p>Error: No code provided</p></body></html>`, {
       headers: { 'Content-Type': 'text/html' }
     })
   }
@@ -30,44 +30,36 @@ export async function GET(request) {
 
     if (tokens.error) {
       console.error('Token error:', JSON.stringify(tokens))
-      return new Response(`<script>location.href='/app.html?error=${encodeURIComponent(tokens.error_description || tokens.error)}'</script>`, {
+      return new Response(`<html><body><p>Auth error: ${tokens.error}</p></body></html>`, {
         headers: { 'Content-Type': 'text/html' }
       })
     }
 
     const expiry = Date.now() + 3500000
-
-    // Store the full token directly in the cookie (encrypted with base64)
-    // Split into two cookies to handle cookie size limits
     const token = tokens.access_token
     const half = Math.ceil(token.length / 2)
     const part1 = Buffer.from(token.slice(0, half)).toString('base64')
     const part2 = Buffer.from(token.slice(half)).toString('base64')
 
-    const cookieOpts = `Path=/; Max-Age=3500; SameSite=Lax; Secure; HttpOnly`
+    // Cookie options - NOT HttpOnly so JS can also read them
+    const cookieOpts = `Path=/; Max-Age=3500; SameSite=Lax; Secure`
 
     const html = `<!DOCTYPE html>
 <html>
 <head><title>WorkHub - Connecting...</title></head>
-<body>
+<body style="font-family:sans-serif;text-align:center;padding:50px">
 <h2>✓ Gmail Connected — Loading WorkHub...</h2>
+<p>Please wait...</p>
 <script>
-  function getCookie(name) {
-    const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-    return match ? decodeURIComponent(match[2]) : null;
-  }
   try {
-    const p1 = getCookie('wh_t1');
-    const p2 = getCookie('wh_t2');
-    const exp = getCookie('wh_exp');
-    if (p1 && p2) {
-      const token = atob(p1) + atob(p2);
-      localStorage.setItem('wh_token', token);
-      localStorage.setItem('wh_expiry', exp || String(Date.now() + 3500000));
-      console.log('Token written to localStorage, length:', token.length);
-    } else {
-      console.error('Cookies missing - p1:', !!p1, 'p2:', !!p2);
-    }
+    // Write to localStorage for client-side boot.js
+    const p1 = '${part1}';
+    const p2 = '${part2}';
+    const token = atob(p1) + atob(p2);
+    const expiry = '${expiry}';
+    localStorage.setItem('wh_token', token);
+    localStorage.setItem('wh_expiry', expiry);
+    console.log('Token saved to localStorage, length:', token.length);
   } catch(e) {
     console.error('localStorage write failed:', e);
   }
@@ -76,25 +68,25 @@ export async function GET(request) {
 </body>
 </html>`
 
-
     const response = new Response(html, {
       status: 200,
       headers: { 'Content-Type': 'text/html', 'Cache-Control': 'no-store' }
     })
 
+    // Set cookies for server-side API routes (gmail/route.js reads these)
     response.headers.append('Set-Cookie', `wh_t1=${part1}; ${cookieOpts}`)
     response.headers.append('Set-Cookie', `wh_t2=${part2}; ${cookieOpts}`)
     response.headers.append('Set-Cookie', `wh_exp=${expiry}; Path=/; Max-Age=3500; SameSite=Lax; Secure`)
     if (tokens.refresh_token) {
       const rt = Buffer.from(tokens.refresh_token).toString('base64')
-      response.headers.append('Set-Cookie', `wh_rt=${rt}; Path=/; Max-Age=2592000; SameSite=Lax; Secure; HttpOnly`)
+      response.headers.append('Set-Cookie', `wh_rt=${rt}; Path=/; Max-Age=2592000; SameSite=Lax; Secure`)
     }
 
     return response
 
   } catch (e) {
     console.error('Callback error:', e)
-    return new Response(`<script>location.href='/app.html?error=server_error'</script>`, {
+    return new Response(`<html><body><p>Server error: ${e.message}</p></body></html>`, {
       headers: { 'Content-Type': 'text/html' }
     })
   }
