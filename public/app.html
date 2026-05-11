@@ -107,7 +107,7 @@ function getToken(){
   if(state.accessToken) return state.accessToken;
   // Then localStorage
   const t=lsGet('wh_token'),e=parseInt(lsGet('wh_expiry')||'0');
-  if(t&&e>Date.now()) return t;
+  if(t&&e>Date.now()){state.accessToken=t;return t;}
   if(t){lsDel('wh_token');lsDel('wh_expiry');}
   return null;
 }
