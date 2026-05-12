@@ -469,9 +469,9 @@ function render(){
 (function init(){
   const params=new URLSearchParams(location.search);
   
-  // Check if we have a session cookie (set by callback)
+  // Check if we have a valid session (cookie or localStorage token)
   function hasSessionCookie(){
-    return document.cookie.includes('wh_session=');
+    return document.cookie.includes('wh_t1=') || !!getToken();
   }
   
   if(params.get('connected')==='true'){
@@ -479,8 +479,8 @@ function render(){
     if(hasSessionCookie()){
       state.authed=true;
       showToast('Gmail connected! Loading emails...','success');
-      // Fetch emails — server will use the session cookie automatically
-      syncGmailWithToken('cookie');
+      const t=getToken();
+      syncGmailWithToken(t||'cookie');
     } else {
       showToast('Session cookie missing — please try again','error');
     }
