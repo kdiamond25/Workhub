@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server'
 
 function getAccessToken(request) {
+  const authHeader = request.headers.get('authorization') || ''
+  if (authHeader.startsWith('Bearer ')) {
+    const token = authHeader.slice(7)
+    if (token && token.length > 20) return token
+  }
   const cookie = request.headers.get('cookie') || ''
   const getCookie = (name) => {
     const match = cookie.match(new RegExp(`(?:^|;\\s*)${name}=([^;]+)`))
